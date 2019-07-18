@@ -1,19 +1,10 @@
 #ifndef _ALLOCATOR_H
 #define _ALLOCATOR_H
 
-#include "global.h"
+#include "global.cuh"
 #include <stdio.h>
 
 namespace depth_filter {
-
-template <typename T>
-__global__
-void test_2d(T* data, size_t stride, size_t cols, size_t rows) {
-  size_t tidx = blockIdx.x*blockDim.x+threadIdx.x;
-  size_t tidy = blockIdx.y*blockDim.y+threadIdx.y;
-  if ((tidx < cols) && (tidy < rows))
-    data[tidy*stride+tidx] = data[tidy*stride+tidx]*tidx*tidy;
-}
 
 template <typename T>
 class AbstractAllocator {
@@ -72,15 +63,6 @@ public:
   T           *data_;
   AbstractAllocator<T> *ptr_;
 };
-
-template <typename T>
-__global__
-void test_2d_class(AbstractAllocator<T> *dev_ptr) {
-  size_t tidx = blockIdx.x*blockDim.x+threadIdx.x;
-  size_t tidy = blockIdx.y*blockDim.y+threadIdx.y;
-  if ((tidx < dev_ptr->width()) && (tidy < dev_ptr->height()))
-    (*dev_ptr)(tidx, tidy) = (*dev_ptr)(tidx, tidy)*tidx*tidy;
-}
 
 } // namespace depth_filter
 

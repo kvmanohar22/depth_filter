@@ -3,6 +3,15 @@
 using namespace depth_filter;
 using namespace std;
 
+template <typename T>
+__global__
+void test_2d_class(AbstractAllocator<T> *dev_ptr) {
+  size_t tidx = blockIdx.x*blockDim.x+threadIdx.x;
+  size_t tidy = blockIdx.y*blockDim.y+threadIdx.y;
+  if ((tidx < dev_ptr->width()) && (tidy < dev_ptr->height()))
+    (*dev_ptr)(tidx, tidy) = (*dev_ptr)(tidx, tidy)*tidx*tidy;
+}
+
 int main() {
   float data[] = {1, 2, 3, 4,
                 5, 6, 7, 8,
