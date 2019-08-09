@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Sophus REQUIRED)
+find_package(fast REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 find_package(Pangolin REQUIRED)
 
@@ -30,8 +31,8 @@ list(APPEND LIBS
 
 list(APPEND SRCS
   src/depth_filter.cpp
+  src/io.cpp
 )
-
 add_library(depth_filter SHARED ${SRCS})
 target_link_libraries(depth_filter ${LIBS})
 
