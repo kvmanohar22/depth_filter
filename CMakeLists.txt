@@ -6,35 +6,30 @@ set(CMAKE_CXX_STANDARD 14)
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(Sophus REQUIRED)
 find_package(fast REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
-find_package(Pangolin REQUIRED)
 
 include_directories(
   include
   ${Eigen3_INCLUDE_DIRS}
   ${OpenCV_INLCUDE_DIRS}
-  ${Sophus_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fast_INCLUDE_DIRS}
-  ${Panglin_INCLUDE_DIRS}
 )
 
 list(APPEND LIBS
   ${OpenCV_LIBS}
-  ${Sophus_LIBRARIES}
   ${Boost_LIBRARIES}
   ${fast_LIBRARIES}
-  ${Pangolin_LIBRARIES}
 )
 
 list(APPEND SRCS
   src/depth_filter.cpp
   src/io.cpp
   src/pinhole.cpp
+  src/frame.cpp
 )
-add_library(depth_filter SHARED ${SRCS})
+add_library(depth_filter SHARED ${SRCS} src/frame.cpp)
 target_link_libraries(depth_filter ${LIBS})
 
 add_executable(test_pipeline test/test_pipeline.cpp)
