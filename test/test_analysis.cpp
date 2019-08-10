@@ -93,17 +93,49 @@ void DepthAnalysis::run_two_view() {
   orb->detectAndCompute(img_ref, cv::noArray(), kps_ref, des_ref); 
 
 #ifdef DEBUG_YES
+  {
+  auto temp_img = img_ref.clone();
   std::for_each(kps_ref.begin(), kps_ref.end(), [&](cv::KeyPoint &kpt) {
-    cv::circle(img_ref, kpt.pt, 2, cv::Scalar(255, 0, 0));
+    cv::circle(temp_img, kpt.pt, 2, cv::Scalar(255, 0, 0));
   });
-  cv::imshow("img_ref", img_ref);
+  cv::imshow("img_ref", temp_img);
   cv::waitKey(0);
+  }
 #endif
 
   // load ground truth poses
-  Sophus::SE3 T_w_ref, T_w_cur; 
+  Sophus::SE3 T_w_ref, T_w_cur, T_cur_ref;
   load_pose(0, T_w_ref);
   load_pose(1, T_w_cur);
+  T_cur_ref = T_w_cur.inverse() * T_w_ref;
+
+  srand(time(0));
+  size_t rand_idx = rand()%kps_ref.size();
+  auto kpt = kps_ref[rand_idx].pt;
+  auto d = depth_img_ref.at<float>(kpt.y, kpt.x);
+
+  double dz = 1e-1;
+  double d_min = 0.1*d;
+  double d_max = 10*d;
+  Vector3d bearing_vec_ref(kpt.y, kpt.x, 1.0);
+  bearing_vec_ref = bearing_vec_ref / bearing_vec_ref.norm();
+  while (d_min < d_max) {
+    cout << "original depth = " << d << "\td_max = " << d_max << "\t" << "d_cur = " << d_min << endl;
+    auto pt_ref = bearing_vec_ref * d_min;
+    Vector3d pt_cur = T_cur_ref * pt_ref;
+    Vector2d uv_cur = camera_->world2cam(pt_cur);
+    cout << uv_cur.transpose() << endl;
+
+    cv::Mat img_ref_n = img_ref.clone();
+    cv::Mat img_cur_n = img_cur.clone();
+    cv::circle(img_ref_n, kps_ref[rand_idx].pt, 10, cv::Scalar(255, 0, 0));
+    cv::circle(img_cur_n, cv::Point2f(uv_cur.x(), uv_cur.y()), 10, cv::Scalar(0, 255, 0));
+
+    cv::imshow("img_ref", img_ref_n);
+    cv::imshow("img_cur", img_cur_n);
+    cv::waitKey(0);
+    d_min += dz;
+  }
 }
 
 }

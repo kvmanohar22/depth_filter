@@ -1,6 +1,7 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "depth_filter/utils.h"
 #include "depth_filter/cameras/pinhole.hpp"
 
 namespace df {
@@ -68,9 +69,7 @@ Vector2d Pinhole::world2cam(const Vector2d &uv) const {
 }
 
 Vector2d Pinhole::world2cam(const Vector3d &xyz) const {
-  auto xyz2d = xyz / xyz.z();
-  Vector2d xy2d(xyz2d.x(), xyz2d.y());
-  return world2cam(xy2d);
+  return world2cam(utils::project2d(xyz));
 }
 
 } // namespace df
