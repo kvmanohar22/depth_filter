@@ -11,7 +11,7 @@ find_package(Boost REQUIRED COMPONENTS thread system)
 
 include_directories(
   include
-  ${Eigen3_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INLCUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fast_INCLUDE_DIRS}

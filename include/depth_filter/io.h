@@ -4,8 +4,8 @@
 #include <vector>
 #include <string>
 
+#include "depth_filter/global.hpp"
 #include <opencv2/opencv.hpp>
-#include <Eigen/Core>
 
 namespace io {
 

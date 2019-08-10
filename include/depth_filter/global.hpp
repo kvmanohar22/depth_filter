@@ -11,8 +11,8 @@
 #include <opencv2/core/mat.hpp>
 
 #include <boost/shared_ptr.hpp>
-#include <Eigen/Core>
 #include <Eigen/StdVector>
+#include <Eigen/src/Core/Matrix.h>
 
 #include <glog/logging.h>
 

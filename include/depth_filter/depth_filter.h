@@ -1,10 +1,8 @@
 #ifndef _DEPTH_FILTER_H_
 #define _DEPTH_FILTER_H_
 
-
+#include "depth_filter/global.hpp"
 #include <opencv2/opencv.hpp>
-#include <Eigen/Eigen>
-#include <Eigen/Core>
 
 namespace depth_filter {
 
