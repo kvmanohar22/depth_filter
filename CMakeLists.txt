@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(fast REQUIRED)
+find_package(vikit_common REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
 
 include_directories(
@@ -15,6 +16,7 @@ include_directories(
   ${OpenCV_INLCUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fast_INCLUDE_DIRS}
+  ${vikit_common_INCLUDE_DIRS}
 )
 
 list(APPEND LIBS
@@ -29,9 +31,12 @@ list(APPEND SRCS
   src/pinhole.cpp
   src/frame.cpp
 )
-add_library(depth_filter SHARED ${SRCS} src/frame.cpp)
+add_library(depth_filter SHARED ${SRCS} src/frame.cpp include/depth_filter/utils.h)
 target_link_libraries(depth_filter ${LIBS})
 
 add_executable(test_pipeline test/test_pipeline.cpp)
 target_link_libraries(test_pipeline depth_filter)
+
+add_executable(test_analysis test/test_analysis.cpp)
+target_link_libraries(test_analysis depth_filter)
 

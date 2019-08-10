@@ -25,8 +25,8 @@ public:
 
   virtual double error2() const =0;
 
-  inline int width()  { return width_;  }
-  inline int height() { return height_; }
+  inline int width() const { return width_;  }
+  inline int height() const { return height_; }
 
   inline bool is_in_frame(const Vector2i &obs, int boundary=0) const {
     if (obs[0] >= boundary && obs[0] < width_ - boundary &&
