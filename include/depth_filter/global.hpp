@@ -16,6 +16,8 @@
 
 #include <glog/logging.h>
 
+#include <sophus/se3.h>
+
 namespace df {
 
   using namespace std;

@@ -7,8 +7,10 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(fast REQUIRED)
+find_package(Sophus REQUIRED)
 find_package(vikit_common REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system)
+add_definitions(-DDEBUG_YES)
 
 include_directories(
   include
@@ -16,6 +18,7 @@ include_directories(
   ${OpenCV_INLCUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fast_INCLUDE_DIRS}
+  ${Sophus_INCLUDE_DIRS}
   ${vikit_common_INCLUDE_DIRS}
 )
 
@@ -23,6 +26,7 @@ list(APPEND LIBS
   ${OpenCV_LIBS}
   ${Boost_LIBRARIES}
   ${fast_LIBRARIES}
+  ${Sophus_LIBRARIES}
 )
 
 list(APPEND SRCS
@@ -39,4 +43,7 @@ target_link_libraries(test_pipeline depth_filter)
 
 add_executable(test_analysis test/test_analysis.cpp)
 target_link_libraries(test_analysis depth_filter)
+
+add_executable(test_utils test/test_utils.cpp)
+target_link_libraries(test_utils depth_filter)
 
