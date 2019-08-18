@@ -22,11 +22,11 @@ void test_cc() {
   g = (cv::Mat_<float>(4, 4) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7);
   f /= 10;
   g /= 10;
-  cv::imshow("f", f);
-  cv::waitKey(0);
+  // cv::imshow("f", f);
+  // cv::waitKey(0);
   // auto score = df::utils::normalized_cross_correlation(f, g);
-  cv::imshow("f", f);
-  cv::waitKey(0);
+  // cv::imshow("f", f);
+  // cv::waitKey(0);
 
   // case 2
   cv::Mat f1 = cv::imread("../data/test_image.png", 0);
@@ -36,7 +36,7 @@ void test_cc() {
   f1.convertTo(f1, CV_32F);
   g1.convertTo(g1, CV_32F);
 
-  cv::imwrite("f1_before.png", f1);  
+  cv::imwrite("f1_before.png", f1);
   auto score = df::utils::normalized_cross_correlation(f1, g1);
   cv::imwrite("f1_after.png", f1);
 }

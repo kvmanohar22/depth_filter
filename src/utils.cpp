@@ -20,12 +20,17 @@ float cross_correlation(cv::Mat &f, cv::Mat &g) {
     for (size_t c=0; c<f_cols; ++c) {
       float score=0;
       if (r+stride_r<f_rows && c+stride_c<f_cols) {
-        g_ptr = g.ptr<float>();
-        for(size_t i=0; i<stride_r;++i)
-          for(size_t j=0; j<stride_c;++j, ++g_ptr)
-            score += (*(g_ptr+i*stride_r+j) * (*(f_ptr+(r+i)*f_rows+c+j)));
+        for(size_t i=0; i<stride_r;++i) {
+          for(size_t j=0; j<stride_c;++j) {
+            auto f_val = *(f_ptr+(r+i)*f_rows+c+j);
+            auto g_val = *(g_ptr+i*stride_r+j);
+            score += f_val * g_val;
+          }
+        }
+        *score_ptr = score;
+        ++score_ptr; 
+        cout << r << " x " << c << "\t score = " << *score_ptr << endl;
       }
-     *score_ptr = score; 
     }
   }
   cv::imwrite("score.png", score_img);
