@@ -34,6 +34,7 @@ list(APPEND SRCS
   src/io.cpp
   src/pinhole.cpp
   src/frame.cpp
+  src/utils.cpp
 )
 add_library(depth_filter SHARED ${SRCS} src/frame.cpp include/depth_filter/utils.h)
 target_link_libraries(depth_filter ${LIBS})

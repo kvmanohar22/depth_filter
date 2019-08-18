@@ -69,6 +69,28 @@ inline void  quaternion_to_rotation_matrix(double q[4], Matrix3d &R) {
       R(i, j) *= normalizer;
 }
 
+
+float cross_correlation(cv::Mat &f, cv::Mat &g);
+
+float normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 } // namespace utils
 
 } // namespace df
