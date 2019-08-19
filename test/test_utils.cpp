@@ -15,6 +15,26 @@ void test_quaternion() {
   }
 }
 
+void test_cross_correlation_single_patch() {
+  cv::Mat f, g;
+  f = (cv::Mat_<float>(4, 4) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7);
+  g = (cv::Mat_<float>(4, 4) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7);
+  df::utils::normalize_image(f);
+  df::utils::normalize_image(g);
+  auto score = df::utils::cross_correlation_single_patch(
+      f.ptr<float>(), g.ptr<float>(), 4, 4, 0, 0, 0, 0, 4, 4);
+  cout << "NCC score = " << score << endl;
+
+  f = (cv::Mat_<float>(3, 5) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,7);
+  g = (cv::Mat_<float>(3, 5) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,7);
+  df::utils::normalize_image(f);
+  df::utils::normalize_image(g);
+  score = df::utils::cross_correlation_single_patch(
+      f.ptr<float>(), g.ptr<float>(), 5, 5, 0, 0, 0, 0, 5, 3);
+  cout << "NCC score = " << score << endl;
+}
+
+
 void test_cc() {
   // case 1
   cv::Mat f(4, 4, CV_32F), g(4,4,CV_32F);
@@ -44,5 +64,5 @@ void test_cc() {
 
 int main() {
   // test_quaternion();
-  test_cc();
+  test_cross_correlation_single_patch();
 }
