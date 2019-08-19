@@ -43,8 +43,9 @@ public:
 
   inline bool distortion() { return distortion_; }
 
-  inline cv::Mat K() { return cvK_.clone(); }
-  inline cv::Mat D() { return cvD_.clone(); }
+  inline Matrix3d  K() { return K_; }
+  inline cv::Mat cvK() { return cvK_.clone(); }
+  inline cv::Mat cvD() { return cvD_.clone(); }
 };
 
 } // namespace df
