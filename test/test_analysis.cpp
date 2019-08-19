@@ -112,9 +112,9 @@ void DepthAnalysis::run_two_view() {
   auto kpt = kps_ref[rand_idx].pt;
   auto d = depth_img_ref.at<float>(kpt.y, kpt.x);
 
-  double dz = 1.0;
-  double d_min = 0.1*d;
-  double d_max = 10*d;
+  double dz = 1;
+  double d_min = 0.001*d;
+  double d_max = 100*d;
   Vector2d px(kpt.x, kpt.y);
   Vector3d bearing_vec_ref = camera_->cam2world(px);
 
@@ -130,16 +130,20 @@ void DepthAnalysis::run_two_view() {
   cv::waitKey(3000);
 #endif
 
+  cout << "original depth = " << d << endl;
   while (d_min < d_max) {
-    cout << "original depth = " << d << "\td_max = " << d_max << "\t" << "d_cur = " << d_min << endl;
     Vector3d pt_ref = bearing_vec_ref * d_min;
     Vector3d pt_cur = T_cur_ref * pt_ref;
     Vector2d uv_cur = camera_->world2cam(pt_cur);
-
+    cout  << "\t d_max = " << d_max
+          << "\t d_cur = " << d_min
+          << "\t xyz = " << pt_cur.transpose() 
+          << "\t uv = " << uv_cur.transpose()
+          << endl;
     cv::Mat img_ref_n = img_ref.clone();
     cv::Mat img_cur_n = img_cur.clone();
-    cv::circle(img_ref_n, kps_ref[rand_idx].pt, 2, cv::Scalar(255, 0, 0), CV_AA);
-    cv::circle(img_cur_n, cv::Point2f(uv_cur.x(), uv_cur.y()), 2, cv::Scalar(0, 255, 0), CV_AA);
+    cv::circle(img_ref_n, kps_ref[rand_idx].pt, 1, cv::Scalar(255, 0, 0), CV_AA);
+    cv::circle(img_cur_n, cv::Point2f(uv_cur.x(), uv_cur.y()), 1, cv::Scalar(0, 255, 0), CV_AA);
 
     cv::imshow("img_ref", img_ref_n);
     cv::imshow("img_cur", img_cur_n);

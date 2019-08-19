@@ -72,6 +72,12 @@ inline void  quaternion_to_rotation_matrix(double q[4], Matrix3d &R) {
 
 float cross_correlation(cv::Mat &f, cv::Mat &g);
 
+/// Note; f and g should be row-major ordered and of equal size
+float cross_correlation_single_patch(float *f, float *g,
+    size_t f_cols, size_t start_idx, size_t end_idx);
+
+void normalize_image(cv::Mat &img);
+
 float normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
 
 
