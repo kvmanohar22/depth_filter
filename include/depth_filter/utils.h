@@ -70,7 +70,7 @@ inline void  quaternion_to_rotation_matrix(double q[4], Matrix3d &R) {
 }
 
 
-float cross_correlation(cv::Mat &f, cv::Mat &g);
+bool cross_correlation(cv::Mat &f, cv::Mat &g);
 
 // Note; f and g should be row-major ordered
 // f -> (0, 0)
@@ -85,8 +85,7 @@ float cross_correlation_single_patch(float *f, float *g,
 
 void normalize_image(cv::Mat &img);
 
-float normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
-
+void normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
 
 
 

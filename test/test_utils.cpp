@@ -34,7 +34,6 @@ void test_cross_correlation_single_patch() {
   cout << "NCC score = " << score << endl;
 }
 
-
 void test_cc() {
   // case 1
   cv::Mat f(4, 4, CV_32F), g(4,4,CV_32F);
@@ -44,7 +43,7 @@ void test_cc() {
   g /= 10;
   // cv::imshow("f", f);
   // cv::waitKey(0);
-  // auto score = df::utils::normalized_cross_correlation(f, g);
+  // df::utils::normalized_cross_correlation(f, g);
   // cv::imshow("f", f);
   // cv::waitKey(0);
 
@@ -57,12 +56,13 @@ void test_cc() {
   g1.convertTo(g1, CV_32F);
 
   cv::imwrite("f1_before.png", f1);
-  auto score = df::utils::normalized_cross_correlation(f1, g1);
+  df::utils::normalized_cross_correlation(f1, g1);
   cv::imwrite("f1_after.png", f1);
 }
 
 
 int main() {
   // test_quaternion();
+  test_cc();
   test_cross_correlation_single_patch();
 }

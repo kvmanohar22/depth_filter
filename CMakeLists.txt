@@ -42,6 +42,9 @@ target_link_libraries(depth_filter ${LIBS})
 add_executable(test_pipeline test/test_pipeline.cpp)
 target_link_libraries(test_pipeline depth_filter)
 
+add_executable(analyze_kitti analysis/kitti.cpp)
+target_link_libraries(analyze_kitti depth_filter)
+
 add_executable(test_analysis test/test_analysis.cpp)
 target_link_libraries(test_analysis depth_filter)
 

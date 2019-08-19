@@ -13,15 +13,13 @@ namespace io {
 class IO {
 public:
   IO(std::string env);
-  bool read_set(size_t idx, double &ts, cv::Mat &img, Eigen::Matrix4d &T_f_w); 
+  bool read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w); 
   size_t n_imgs() const { return img_paths_.size(); }
 
 private:
   std::vector<std::string> img_paths_;
-  std::vector<Eigen::Matrix4d> poses_; 
+  std::vector<Sophus::SE3> poses_; 
   std::vector<double> times_; 
-
-  
 };
 
 } // namespace io

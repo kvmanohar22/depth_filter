@@ -14,7 +14,7 @@ int main() {
   for (size_t ii = 0; ii < n_files; ++ii) {
     cv::Mat img;
     double ts;
-    Eigen::Matrix4d T_f_w;
+    Sophus::SE3 T_f_w;
     io.read_set(ii, ts, img, T_f_w);
   }
 }

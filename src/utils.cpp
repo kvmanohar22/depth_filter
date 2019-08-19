@@ -6,7 +6,6 @@ namespace df {
 
 namespace utils {
 
-
 float cross_correlation_single_patch(
     float *f, float *g,
     size_t f_cols, size_t g_cols,
@@ -24,7 +23,7 @@ float cross_correlation_single_patch(
   return score;
 }
 
-float cross_correlation(cv::Mat &f, cv::Mat &g) {
+bool cross_correlation(cv::Mat &f, cv::Mat &g) {
   auto f_ptr = f.ptr<float>();
   auto g_ptr = g.ptr<float>();
   size_t stride_r = g.cols;
@@ -36,20 +35,12 @@ float cross_correlation(cv::Mat &f, cv::Mat &g) {
   auto score_ptr = score_img.ptr<float>();
   for (size_t r=0; r<f_rows; ++r) {
     for (size_t c=0; c<f_cols; ++c) {
-      float score=0;
-      if (r+stride_r<=f_rows && c+stride_c<=f_cols) {
-        for(size_t i=0; i<stride_r;++i) {
-          for(size_t j=0; j<stride_c;++j) {
-            auto f_val = *(f_ptr+(r+i)*f_cols+c+j);
-            auto g_val = *(g_ptr+i*stride_r+j);
-            score += f_val * g_val;
-          }
-        }
+      auto score = cross_correlation_single_patch(
+          f_ptr, g_ptr, f_cols, stride_r, c, r, 0, 0, stride_r, stride_c);
         *score_ptr = score;
         ++score_ptr; 
       }
     }
-  }
   return 0;
 }
 
@@ -72,10 +63,10 @@ void normalize_image(cv::Mat &img) {
       *img_ptr = (*img_ptr - mean)/stddev;
 }
 
-float normalized_cross_correlation(cv::Mat &f, cv::Mat &g) {
+void normalized_cross_correlation(cv::Mat &f, cv::Mat &g) {
   normalize_image(f);
   normalize_image(g);
-  return cross_correlation(f, g);
+  cross_correlation(f, g);
 }
 
 } // namespace utils

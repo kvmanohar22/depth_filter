@@ -31,7 +31,7 @@ IO::IO(std::string base) {
   for (int i = 0; i < times_.size(); ++i) {
     std::stringstream ss;
     ss << std::setfill('0') << std::setw(6) << i;
-    img_paths_.emplace_back(img_paths + ss.str() + ".png");
+    img_paths_.emplace_back(img_paths + "/" + ss.str() + ".png");
   }
 
   // Read poses 
@@ -52,11 +52,18 @@ IO::IO(std::string base) {
         ++num;
       }
     }
-    poses_.emplace_back(T_f_w);
+    Eigen::Matrix3d R_f_w; Eigen::Vector3d t_f_w;
+    for (size_t i=0; i<3; ++i)
+      for (size_t j=0; j<3; ++j)
+        R_f_w(i, j) = T_f_w(i, j);
+    for (size_t j=0; j<3; ++j)
+      t_f_w(j) = T_f_w(j, 3);
+    Sophus::SE3 T_f_w_se3(R_f_w, t_f_w);
+    poses_.emplace_back(T_f_w_se3);
   }
 } 
 
-bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Eigen::Matrix4d &T_f_w) {
+bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w) {
   ts = times_[idx];
   img = cv::imread(img_paths_[idx], 0);
   T_f_w = poses_[idx];
