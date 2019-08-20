@@ -65,7 +65,7 @@ private:
 DepthAnalysis::DepthAnalysis() {
   camera_ = new df::Pinhole(1241, 376, 718.856, 718.856, 607.1928, 185.2157);
   root_dir_= std::getenv("DATA_KITTI");
-  io_ = new IO(root_dir_+"/00");
+  io_ = new IO(root_dir_+"/02");
   cout << "Read " << io_->n_imgs() << " files\n";
 }
 
@@ -80,11 +80,7 @@ void DepthAnalysis::run_two_view() {
   double ts_ref, ts_cur;
   Sophus::SE3 T_w_ref, T_w_cur;
   io_->read_set(2, ts_ref, img_ref, T_w_ref);  
-  io_->read_set(4, ts_cur, img_cur, T_w_cur);  
-  cout << T_w_ref.rotation_matrix() << endl;
-  cout << T_w_ref.translation() << endl;
-  cout << T_w_cur.rotation_matrix() << endl;
-  cout << T_w_cur.translation() << endl;
+  io_->read_set(9, ts_cur, img_cur, T_w_cur);
 
 #ifdef DEBUG_YES
   cv::imshow("ref", img_ref);
@@ -127,7 +123,7 @@ void DepthAnalysis::run_two_view() {
   auto kpt = kps_ref[rand_idx].pt;
   float z_min = 1.0f;
   float z_max = 1000.0f;
-  float dz = 0.1f;
+  float dz = 1;
   Vector2d px(kpt.x, kpt.y);
   Vector3d f_vec_ref = camera_->cam2world(px);
   Vector3d px_homo(px.x(), px.y(), 1.0);
