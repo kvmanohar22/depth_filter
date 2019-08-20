@@ -78,9 +78,13 @@ void DepthAnalysis::run_two_view() {
   // load images and GT poses
   cv::Mat img_ref, img_cur;
   double ts_ref, ts_cur;
-  Sophus::SE3 T_ref_w, T_cur_w;
-  io_->read_set(0, ts_ref, img_ref, T_ref_w);  
-  io_->read_set(2, ts_cur, img_cur, T_cur_w);  
+  Sophus::SE3 T_w_ref, T_w_cur;
+  io_->read_set(2, ts_ref, img_ref, T_w_ref);  
+  io_->read_set(4, ts_cur, img_cur, T_w_cur);  
+  cout << T_w_ref.rotation_matrix() << endl;
+  cout << T_w_ref.translation() << endl;
+  cout << T_w_cur.rotation_matrix() << endl;
+  cout << T_w_cur.translation() << endl;
 
 #ifdef DEBUG_YES
   cv::imshow("ref", img_ref);
@@ -107,7 +111,7 @@ void DepthAnalysis::run_two_view() {
   cv::waitKey(0);
 #endif
 
-  auto T_cur_ref = T_cur_w * T_ref_w.inverse();
+  auto T_cur_ref = T_w_cur.inverse() * T_w_ref;
   auto R_cur_ref = T_cur_ref.rotation_matrix();
   auto t = T_cur_ref.translation();
   Eigen::Matrix3d t_hat;
@@ -123,11 +127,11 @@ void DepthAnalysis::run_two_view() {
   auto kpt = kps_ref[rand_idx].pt;
   float z_min = 1.0f;
   float z_max = 1000.0f;
-  float dz = 1.0f;
+  float dz = 0.1f;
   Vector2d px(kpt.x, kpt.y);
   Vector3d f_vec_ref = camera_->cam2world(px);
   Vector3d px_homo(px.x(), px.y(), 1.0);
-  Vector3d epiline = px_homo.transpose() * E;
+  Vector3d epiline = px_homo.transpose() * F;
   while (z_min < z_max) {
     Vector3d pt_ref = f_vec_ref * z_min;
     Vector3d pt_cur = T_cur_ref * pt_ref;

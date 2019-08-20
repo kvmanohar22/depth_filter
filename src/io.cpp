@@ -41,32 +41,32 @@ IO::IO(std::string base) {
   while (!fposes.eof()) {
     std::string s;
     std::getline(fposes, s);
-    Eigen::Matrix4d T_f_w = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d T_w_f = Eigen::Matrix4d::Identity();
     if (!s.empty()) {
       size_t num = 0;
       std::istringstream ss(s);
       while (num < 12) {
         double t;
         ss >> t;
-        T_f_w(num/4, num % 4) = t;
+        T_w_f(num/4, num % 4) = t;
         ++num;
       }
     }
-    Eigen::Matrix3d R_f_w; Eigen::Vector3d t_f_w;
+    Eigen::Matrix3d R_w_f; Eigen::Vector3d t_w_f;
     for (size_t i=0; i<3; ++i)
       for (size_t j=0; j<3; ++j)
-        R_f_w(i, j) = T_f_w(i, j);
+        R_w_f(i, j) = T_w_f(i, j);
     for (size_t j=0; j<3; ++j)
-      t_f_w(j) = T_f_w(j, 3);
-    Sophus::SE3 T_f_w_se3(R_f_w, t_f_w);
-    poses_.emplace_back(T_f_w_se3);
+      t_w_f(j) = T_w_f(j, 3);
+    Sophus::SE3 T_w_f_se3(R_w_f, t_w_f);
+    poses_.emplace_back(T_w_f_se3);
   }
-} 
+}
 
-bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w) {
+bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) {
   ts = times_[idx];
   img = cv::imread(img_paths_[idx], 0);
-  T_f_w = poses_[idx];
+  T_w_f = poses_[idx];
   return true;
 }
 
