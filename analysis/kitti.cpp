@@ -3,6 +3,7 @@
 #include "depth_filter/global.hpp"
 #include "depth_filter/io.h"
 #include "depth_filter/utils.h"
+#include "depth_filter/cloud.h"
 #include "depth_filter/cameras/abstract.hpp"
 #include "depth_filter/cameras/pinhole.hpp"
 
@@ -65,7 +66,7 @@ private:
 DepthAnalysis::DepthAnalysis() {
   camera_ = new df::Pinhole(1241, 376, 718.856, 718.856, 607.1928, 185.2157);
   root_dir_= std::getenv("DATA_KITTI");
-  io_ = new IO(root_dir_+"/02");
+  io_ = new IO(root_dir_+"/00");
   cout << "Read " << io_->n_imgs() << " files\n";
 }
 
@@ -79,8 +80,11 @@ void DepthAnalysis::run_two_view() {
   cv::Mat img_ref, img_cur;
   double ts_ref, ts_cur;
   Sophus::SE3 T_w_ref, T_w_cur;
+  PointCloud cloud;
   io_->read_set(2, ts_ref, img_ref, T_w_ref);  
   io_->read_set(9, ts_cur, img_cur, T_w_cur);
+  io_->read_vel(2, &cloud);
+  cout << "Read " << cloud.npts() << " velodyne points" << endl;
 
 #ifdef DEBUG_YES
   cv::imshow("ref", img_ref);

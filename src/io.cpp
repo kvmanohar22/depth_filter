@@ -1,5 +1,6 @@
 #include "depth_filter/global.hpp"
 #include "depth_filter/io.h"
+#include "depth_filter/utils.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range.hpp>
@@ -103,6 +104,10 @@ bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) {
   img = cv::imread(img_paths_[idx], 0);
   T_w_f = poses_[idx];
   return true;
+}
+
+bool IO::read_vel(size_t idx, df::PointCloud *cloud) {
+  df::utils::load_kitti_velodyne_scan(vel_paths_[idx], cloud);
 }
 
 } // namespace io
