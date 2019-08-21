@@ -1,3 +1,4 @@
+#include "depth_filter/global.hpp"
 #include "depth_filter/io.h"
 
 #include <boost/filesystem.hpp>
@@ -9,7 +10,9 @@ namespace io {
 IO::IO(std::string base) {
   const auto times_file = base + "/times.txt";
   const auto img_paths = base + "/image_0";
+  const auto vel_paths = base + "/velodyne";
   const auto pose_file = base + "/pose.txt";
+  const auto calib_file = base + "/calib.txt";
 
   // Read image paths
   std::ifstream ftimes;
@@ -32,6 +35,38 @@ IO::IO(std::string base) {
     std::stringstream ss;
     ss << std::setfill('0') << std::setw(6) << i;
     img_paths_.emplace_back(img_paths + "/" + ss.str() + ".png");
+    vel_paths_.emplace_back(vel_paths + "/" + ss.str() + ".bin");
+  }
+
+  // Read Transformation matrix
+  std::ifstream fcalib;
+  fcalib.open(calib_file.c_str());
+  while(!fcalib.eof()) {
+    std::string s;
+    std::getline(fcalib, s);
+    std::getline(fcalib, s);
+    std::getline(fcalib, s);
+    std::getline(fcalib, s);
+    std::getline(fcalib, s);
+    std::istringstream ss(s);
+    std::string dummy;
+    ss >> dummy;
+    size_t num=0;
+    Eigen::Matrix4d T_cam_vel = Eigen::Matrix4d::Identity();
+    while (num < 12) {
+      double t;
+      ss >> t;
+      T_cam_vel(num/4, num%4) = t;
+      ++num;
+    }
+    Eigen::Matrix3d R_cam_vel; Eigen::Vector3d t_cam_vel;
+    for (size_t i=0; i<3; ++i)
+      for (size_t j=0; j<3; ++j)
+        R_cam_vel(i, j) = T_cam_vel(i, j);
+    for (size_t j=0; j<3; ++j)
+      t_cam_vel(j) = T_cam_vel(j, 3);
+    T_cam0_vel_ = Sophus::SE3(R_cam_vel, t_cam_vel);
+    break;
   }
 
   // Read poses 
@@ -71,4 +106,3 @@ bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) {
 }
 
 } // namespace io
-
