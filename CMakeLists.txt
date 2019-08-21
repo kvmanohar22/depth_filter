@@ -51,3 +51,6 @@ target_link_libraries(test_analysis depth_filter)
 add_executable(test_utils test/test_utils.cpp)
 target_link_libraries(test_utils depth_filter)
 
+add_executable(test_velo test/test_velodyne_scan_kitti.cpp)
+target_link_libraries(test_velo depth_filter)
+

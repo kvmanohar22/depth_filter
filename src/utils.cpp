@@ -69,6 +69,24 @@ void normalized_cross_correlation(cv::Mat &f, cv::Mat &g) {
   cross_correlation(f, g);
 }
 
+bool load_kitti_velodyne_scan(std::string file, df::PointCloud *cloud) {
+  ifstream fpoint;
+  fpoint.open(file, ios::binary);
+  if (!fpoint.good()) {
+    cerr << "Cannot open the file: " << file << endl;
+    return false;
+  }
+
+  for (size_t i = 0; fpoint.good() && !fpoint.eof(); ++i) {
+    Vector3f point; float reflectance;
+    float *ptr = point.data();
+    fpoint.read((char*)ptr, 3*sizeof(float));
+    fpoint.read((char*)&reflectance, sizeof(float));
+    cloud->points_.push_back(point);
+  }
+  return true;
+}
+
 } // namespace utils
 
 } // namespace df

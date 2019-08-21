@@ -2,6 +2,7 @@
 #define DEPTH_ESTIMATION_UTILS_H
 
 #include "depth_filter/global.hpp"
+#include "depth_filter/cloud.h"
 #include "depth_filter/cameras/abstract.hpp"
 
 namespace df {
@@ -87,22 +88,7 @@ void normalize_image(cv::Mat &img);
 
 void normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+bool load_kitti_velodyne_scan(std::string file, df::PointCloud *cloud);
 } // namespace utils
 
 } // namespace df
