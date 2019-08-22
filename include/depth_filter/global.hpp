@@ -26,6 +26,8 @@ namespace df {
   using namespace std;
   using namespace Eigen;
 
+  static const float EPS = 1e-7;
+
 } // namespace df
 
 #endif
