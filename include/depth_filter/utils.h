@@ -84,7 +84,9 @@ float cross_correlation_single_patch(float *f, float *g,
     size_t start_idx_gx, size_t start_idx_gy,
     size_t tx, size_t ty);
 
-void normalize_image(cv::Mat &img);
+cv::Mat normalize_image(cv::Mat &img,
+    size_t r_idx=0, size_t c_idx=0,
+    int cols=-1, int rows=-1);
 
 void normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
 

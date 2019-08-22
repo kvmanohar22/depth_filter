@@ -12,6 +12,12 @@ float cross_correlation_single_patch(
     size_t start_idx_fx, size_t start_idx_fy,
     size_t start_idx_gx, size_t start_idx_gy,
     size_t tx, size_t ty) {
+
+  if (start_idx_gx < 0 || start_idx_gx > g_cols)
+    return -2.0f;
+  if (start_idx_fx < 0 || start_idx_fx > f_cols)
+    return -2.0f;
+
   float score = 0.0f;
   for (size_t r = 0; r < ty; ++r) {
     for (size_t c = 0; c < tx; ++c) {
@@ -44,23 +50,41 @@ bool cross_correlation(cv::Mat &f, cv::Mat &g) {
   return 0;
 }
 
-void normalize_image(cv::Mat &img) {
+cv::Mat normalize_image(cv::Mat &img,
+    size_t r_idx, size_t c_idx,
+    int cols, int rows)
+{
   assert(img.type() == CV_32F);
+
+  if (r_idx < 0 || c_idx < 0 || r_idx > img.rows || c_idx > img.cols) {
+    cerr << "WARNING: indices are out of bounds\n";
+    return img.clone();
+  }
+
+  rows = rows == -1 ? img.rows : rows;
+  cols = cols == -1 ? img.cols : cols;
+
+  size_t max_row = r_idx + rows;
+  size_t max_col = c_idx + cols;
+  auto img_copy = img.clone();
   float mean = 0.0f, stddev = 0.0f;
-  auto img_ptr = img.ptr<float>();
-  for (size_t r = 0; r < img.rows; ++r)
-    for (size_t c = 0; c < img.cols; ++c, ++img_ptr)
-      mean += *img_ptr;
-  mean /= (img.rows*img.cols);
-  img_ptr = img.ptr<float>();
-  for (size_t c=0;c<img.cols;++c)
-    for (size_t r=0;r<img.rows;++r, ++img_ptr)
-      stddev += (*img_ptr - mean)*(*img_ptr - mean);
+  auto img_ptr = img_copy.ptr<float>();
+  for (size_t r = r_idx; r < max_row; ++r)
+    for (size_t c = c_idx; c < max_col; ++c)
+      mean += *(img_ptr + r*img.cols+c);
+  mean /= (rows*cols);
+  for (size_t c=c_idx;c<max_col;++c) {
+    for (size_t r=r_idx;r<max_row;++r) {
+      auto val = *(img_ptr +r*img.cols+c);
+      stddev += (val - mean)*(val - mean);
+    }
+  }
   stddev = sqrt(stddev);
-  img_ptr = img.ptr<float>();
-  for (size_t c=0;c<img.cols;++c)
-    for (size_t r=0;r<img.rows;++r, ++img_ptr)
-      *img_ptr = (*img_ptr - mean)/stddev;
+  for (size_t c=c_idx;c<max_col;++c)
+    for (size_t r=r_idx;r<max_row;++r)
+      *(img_ptr+r*img.cols+c) = (*(img_ptr+r*img.cols+c)-mean)/stddev;
+
+  return img_copy.clone();
 }
 
 void normalized_cross_correlation(cv::Mat &f, cv::Mat &g) {

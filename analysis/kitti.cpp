@@ -13,6 +13,8 @@ using namespace df;
 
 static const int IMG_H = 376;
 static const int IMG_W = 1241;
+static const int patch_size = 4;
+static const int half_patch_size = patch_size / 2;
 
 bool valid(Vector2d &pt) {
   if (pt.x() < 0 || pt.y() < 0 ||
@@ -82,7 +84,7 @@ void DepthAnalysis::run_two_view() {
   Sophus::SE3 T_w_ref, T_w_cur;
   PointCloud cloud;
   io_->read_set(2, ts_ref, img_ref, T_w_ref);  
-  io_->read_set(9, ts_cur, img_cur, T_w_cur);
+  io_->read_set(3, ts_cur, img_cur, T_w_cur);
   io_->read_vel(2, &cloud);
   cout << "Read " << cloud.npts() << " velodyne points" << endl;
 
@@ -132,14 +134,34 @@ void DepthAnalysis::run_two_view() {
   Vector3d f_vec_ref = camera_->cam2world(px);
   Vector3d px_homo(px.x(), px.y(), 1.0);
   Vector3d epiline = px_homo.transpose() * F;
+  auto img_ref_copy = img_ref.clone();
+  auto img_cur_copy = img_cur.clone();
+  img_ref_copy.convertTo(img_ref_copy, CV_32F);
+  img_cur_copy.convertTo(img_cur_copy, CV_32F);
   while (z_min < z_max) {
     Vector3d pt_ref = f_vec_ref * z_min;
     Vector3d pt_cur = T_cur_ref * pt_ref;
     Vector2d uv_cur = camera_->world2cam(pt_cur);
+
+    // calculate NCC score
+    auto img_ref_norm = df::utils::normalize_image(
+        img_ref_copy, kpt.y-half_patch_size, kpt.x-half_patch_size,
+        patch_size, patch_size);
+    auto img_cur_norm = df::utils::normalize_image(
+        img_cur_copy, uv_cur.y()-half_patch_size, uv_cur.x()-half_patch_size,
+        patch_size, patch_size);
+    auto img_ref_ptr = img_ref_norm.ptr<float>();
+    auto img_cur_ptr = img_cur_norm.ptr<float>();
+    float ncc_score = df::utils::cross_correlation_single_patch(
+        img_ref_ptr, img_cur_ptr, img_ref.cols, img_cur.cols,
+        kpt.x-half_patch_size, kpt.y-half_patch_size,
+        uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
+        patch_size, patch_size);
     cout  << "\t z_max = " << z_max
           << "\t z_cur = " << z_min
           << "\t xyz = " << pt_cur.transpose() 
           << "\t uv = " << uv_cur.transpose()
+          << "\t ncc = " << ncc_score
           << endl;
     cv::Mat img_ref_n = img_ref.clone();
     cv::Mat img_cur_n = img_cur.clone();

@@ -19,16 +19,16 @@ void test_cross_correlation_single_patch() {
   cv::Mat f, g;
   f = (cv::Mat_<float>(4, 4) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7);
   g = (cv::Mat_<float>(4, 4) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7);
-  df::utils::normalize_image(f);
-  df::utils::normalize_image(g);
+  f = df::utils::normalize_image(f);
+  g = df::utils::normalize_image(g);
   auto score = df::utils::cross_correlation_single_patch(
       f.ptr<float>(), g.ptr<float>(), 4, 4, 0, 0, 0, 0, 4, 4);
   cout << "NCC score = " << score << endl;
 
   f = (cv::Mat_<float>(3, 5) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,7);
   g = (cv::Mat_<float>(3, 5) << 1,2,3,4,5,6,7,8,9,1,2,3,4,5,7);
-  df::utils::normalize_image(f);
-  df::utils::normalize_image(g);
+  f = df::utils::normalize_image(f);
+  g = df::utils::normalize_image(g);
   score = df::utils::cross_correlation_single_patch(
       f.ptr<float>(), g.ptr<float>(), 5, 5, 0, 0, 0, 0, 5, 3);
   cout << "NCC score = " << score << endl;
@@ -55,14 +55,19 @@ void test_cc() {
   f1.convertTo(f1, CV_32F);
   g1.convertTo(g1, CV_32F);
 
-  cv::imwrite("f1_before.png", f1);
-  df::utils::normalized_cross_correlation(f1, g1);
-  cv::imwrite("f1_after.png", f1);
+  auto f1_normalized = df::utils::normalize_image(f1, 0, 0, 4, 4);
+  auto g1_normalized = df::utils::normalize_image(g1);
+  float *f1_ptr = f1_normalized.ptr<float>();
+  float *g1_ptr = g1_normalized.ptr<float>();
+  float ncc_score = df::utils::cross_correlation_single_patch(
+      f1_ptr, f1_ptr, f1.cols, f1.cols,
+      0, 0, 0, 0, 4, 4);
+  cout << "NCC = " << ncc_score << endl;
 }
 
 
 int main() {
-  // test_quaternion();
+  test_quaternion();
   test_cc();
   test_cross_correlation_single_patch();
 }
