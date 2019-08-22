@@ -59,22 +59,35 @@ void draw_line(Vector3d &line, cv::Mat &img) {
 
 class DepthAnalysis {
 public:
-  DepthAnalysis();
+  DepthAnalysis(size_t ref_idx);
   ~DepthAnalysis();
-  void run_two_view();
+  void run_two_view(size_t cur_idx);
   void run_N_view();
 
+protected:
+  void load_ref();
+
 private:
-  string root_dir_;
+  string          root_dir_;
   AbstractCamera *camera_;
-  IO *io_;
+  IO             *io_;
+
+  /// Reference image stuff
+  size_t               ref_idx_;
+  double               ref_ts_;
+  cv::Mat              ref_img_;
+  Sophus::SE3          T_w_ref_;
+  PointCloud           cloud_;
+  vector<cv::Point2f>  ref_kps_;
 };
 
-DepthAnalysis::DepthAnalysis() {
+DepthAnalysis::DepthAnalysis(size_t ref_idx) : ref_idx_(ref_idx) {
   camera_ = new df::Pinhole(1241, 376, 718.856, 718.856, 607.1928, 185.2157);
   root_dir_= std::getenv("DATA_KITTI");
   io_ = new IO(root_dir_+"/00");
   cout << "Read " << io_->n_imgs() << " files\n";
+
+  load_ref();
 }
 
 DepthAnalysis::~DepthAnalysis() {
@@ -82,78 +95,48 @@ DepthAnalysis::~DepthAnalysis() {
   delete io_;
 }
 
-void DepthAnalysis::run_two_view() {
-  // load images and GT poses
-  cv::Mat img_ref, img_cur;
-  double ts_ref, ts_cur;
-  Sophus::SE3 T_w_ref, T_w_cur;
-  PointCloud cloud;
-  io_->read_set(ref_idx, ts_ref, img_ref, T_w_ref);  
-  io_->read_set(cur_idx, ts_cur, img_cur, T_w_cur);
-  io_->read_vel(2, &cloud);
-  cout << "Read " << cloud.npts() << " velodyne points" << endl;
-  auto img_ref_copy = img_ref.clone();
-  auto img_cur_copy = img_cur.clone();
-  img_ref_copy.convertTo(img_ref_copy, CV_32F);
-  img_cur_copy.convertTo(img_cur_copy, CV_32F);
-
-#ifdef DEBUG_YES
-  cv::imshow("ref", img_ref);
-  cv::imshow("cur", img_cur);
-  cv::waitKey(3000);
-  cv::destroyWindow("ref");
-  cv::destroyWindow("cur");
-#endif
+void DepthAnalysis::load_ref() {
+  io_->read_set(ref_idx_, ref_ts_, ref_img_, T_w_ref_);  
+  io_->read_vel(ref_idx_, &cloud_);
+  cout << "Read " << cloud_.npts() << " velodyne points" << endl;
+  auto img_ref_copy = ref_img_.clone();
 
   // detect features in ref image
   cv::Ptr<cv::ORB> orb = cv::ORB::create();
   vector<cv::KeyPoint> kps_ref;
   cv::Mat des_ref;
-  orb->detectAndCompute(img_ref, cv::noArray(), kps_ref, des_ref); 
+  orb->detectAndCompute(ref_img_, cv::noArray(), kps_ref, des_ref);
+  std::for_each(kps_ref.begin(), kps_ref.end(), [&](cv::KeyPoint &kpt) {
+    ref_kps_.emplace_back(kpt.pt);
+  });
+}
+
+void DepthAnalysis::run_two_view(size_t cur_idx) {
+  // load current image data
+  cout << "Analysis between; ref = " << ref_idx_ << "\t cur = " << cur_idx << endl;
+
+  cv::Mat img_cur;
+  double ts_cur;
+  Sophus::SE3 T_w_cur;
+  io_->read_set(cur_idx, ts_cur, img_cur, T_w_cur);
+  auto img_ref_copy = ref_img_.clone();
+  auto img_cur_copy = img_cur.clone();
+  img_ref_copy.convertTo(img_ref_copy, CV_32F);
+  img_cur_copy.convertTo(img_cur_copy, CV_32F);
 
 #ifdef DEBUG_YES
-  cout << "#features = " << kps_ref.size() << "\n";
-  auto temp_img = img_ref.clone();
+  cout << "#features = " << ref_kps_.size() << "\n";
+  auto temp_img = ref_img_.clone();
   cv::cvtColor(temp_img, temp_img, CV_GRAY2BGR);
-  std::for_each(kps_ref.begin(), kps_ref.end(), [&](cv::KeyPoint &kpt) {
-    cv::circle(temp_img, kpt.pt, 1, cv::Scalar(255, 0, 0));
+  std::for_each(ref_kps_.begin(), ref_kps_.end(), [&](cv::Point2f &kpt) {
+    cv::circle(temp_img, kpt, 1, cv::Scalar(255, 0, 0));
   });
   cv::imshow("img_ref", temp_img);
-  cv::waitKey(0);
+  cv::waitKey(5000);
 #endif
 
-  // optical flow
-  const double klt_win_size = 30.0;
-  const int klt_max_iter = 30;
-  const double klt_eps = 0.001;
-  vector<uchar> status;
-  vector<float> error;
-  vector<cv::Point2f> px_ref, px_cur;
-  std::for_each(kps_ref.begin(), kps_ref.end(), [&](cv::KeyPoint &kpt) {
-    px_ref.emplace_back(kpt.pt);
-  });
-  px_cur.insert(px_cur.begin(), px_ref.begin(), px_ref.end());
-  cv::TermCriteria termcrit(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, klt_max_iter, klt_eps);
-  cv::calcOpticalFlowPyrLK(img_ref, img_cur,
-                           px_ref, px_cur,
-                           status, error,
-                           cv::Size2i(klt_win_size, klt_win_size),
-                           4, termcrit, cv::OPTFLOW_USE_INITIAL_FLOW);
-
-  vector<cv::Point2f>::iterator px_ref_it = px_ref.begin();
-  vector<cv::Point2f>::iterator px_cur_it = px_cur.begin();
-  for(size_t i=0; px_ref_it != px_ref.end(); ++i) {
-    if(!status[i]) {
-      px_ref_it = px_ref.erase(px_ref_it);
-      px_cur_it = px_cur.erase(px_cur_it);
-      continue;
-    }
-    ++px_ref_it;
-    ++px_cur_it;
-  }
-
   // compute epiline
-  auto T_cur_ref = T_w_cur.inverse() * T_w_ref;
+  auto T_cur_ref = T_w_cur.inverse() * T_w_ref_;
   auto R_cur_ref = T_cur_ref.rotation_matrix();
   auto t = T_cur_ref.translation();
   Eigen::Matrix3d t_hat;
@@ -165,9 +148,9 @@ void DepthAnalysis::run_two_view() {
   auto K = cam->K();
   auto F = K.transpose().inverse() * E * K.inverse();
   srand(time(0));
-  size_t rand_idx = rand()%px_ref.size();
-  auto kpt_ref = px_ref[rand_idx];
-  auto kpt_cur = px_ref[rand_idx];
+  size_t rand_idx = rand()%ref_kps_.size();
+  auto kpt_ref = ref_kps_[rand_idx];
+  auto kpt_cur = ref_kps_[rand_idx];
   float z_min = 1.0f;
   float z_max = 1000.0f;
   float dz = 1;
@@ -175,9 +158,9 @@ void DepthAnalysis::run_two_view() {
   Vector3d f_vec_ref = camera_->cam2world(uv_ref);
   Vector3d px_homo(uv_ref.x(), uv_ref.y(), 1.0);
   Vector3d epiline = px_homo.transpose() * F;
-  std::string tmp_post = std::tmpnam(nullptr);
-  std::ofstream file(tmp_post+".ncc_score");
-  file << ref_idx << " " << cur_idx << endl;
+  std::string filename = "/tmp/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+  std::ofstream file(filename);
+  file << ref_idx_ << " " << cur_idx << endl;
   file << uv_ref.x() << " " << uv_ref.y() << endl;
   while (z_min < z_max) {
     Vector3d pt_ref = f_vec_ref * z_min;
@@ -194,7 +177,7 @@ void DepthAnalysis::run_two_view() {
     auto img_ref_ptr = img_ref_norm.ptr<float>();
     auto img_cur_ptr = img_cur_norm.ptr<float>();
     float ncc_score = df::utils::cross_correlation_single_patch(
-        img_ref_ptr, img_cur_ptr, img_ref.cols, img_cur.cols,
+        img_ref_ptr, img_cur_ptr, ref_img_.cols, img_cur.cols,
         kpt_ref.x-half_patch_size, kpt_ref.y-half_patch_size,
         uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
         patch_size, patch_size);
@@ -207,7 +190,7 @@ void DepthAnalysis::run_two_view() {
 
     file << z_min << " " << ncc_score << endl;
 
-    cv::Mat img_ref_n = img_ref.clone();
+    cv::Mat img_ref_n = ref_img_.clone();
     cv::Mat img_cur_n = img_cur.clone();
     cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);
     cv::cvtColor(img_cur_n, img_cur_n, CV_GRAY2BGR);
@@ -223,7 +206,17 @@ void DepthAnalysis::run_two_view() {
   }
 }
 
+void DepthAnalysis::run_N_view() {
+
+  size_t start_frame_idx = ref_idx;
+  size_t end_frame_idx   = start_frame_idx + 100;
+
+  while (start_frame_idx < end_frame_idx) {
+
+  }
+}
+
 int main() {
-  DepthAnalysis analyzer;
-  analyzer.run_two_view();
+  DepthAnalysis analyzer(ref_idx);
+  analyzer.run_two_view(ref_idx+1);
 }
