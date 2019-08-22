@@ -17,6 +17,10 @@ static const int IMG_W = 1241;
 static const int patch_size = 4;
 static const int half_patch_size = patch_size / 2;
 
+static const int ref_idx = 27;
+static const int cur_idx = 30;
+
+
 bool valid(Vector2d &pt) {
   if (pt.x() < 0 || pt.y() < 0 ||
       pt.x() > IMG_W || pt.y() > IMG_H)
@@ -84,8 +88,8 @@ void DepthAnalysis::run_two_view() {
   double ts_ref, ts_cur;
   Sophus::SE3 T_w_ref, T_w_cur;
   PointCloud cloud;
-  io_->read_set(2, ts_ref, img_ref, T_w_ref);  
-  io_->read_set(3, ts_cur, img_cur, T_w_cur);
+  io_->read_set(ref_idx, ts_ref, img_ref, T_w_ref);  
+  io_->read_set(cur_idx, ts_cur, img_cur, T_w_cur);
   io_->read_vel(2, &cloud);
   cout << "Read " << cloud.npts() << " velodyne points" << endl;
   auto img_ref_copy = img_ref.clone();
@@ -161,17 +165,20 @@ void DepthAnalysis::run_two_view() {
   auto K = cam->K();
   auto F = K.transpose().inverse() * E * K.inverse();
   srand(time(0));
-  size_t rand_idx = rand()%kps_ref.size();
-  auto kpt = kps_ref[rand_idx].pt;
+  size_t rand_idx = rand()%px_ref.size();
+  auto kpt_ref = px_ref[rand_idx];
+  auto kpt_cur = px_ref[rand_idx];
   float z_min = 1.0f;
   float z_max = 1000.0f;
   float dz = 1;
-  Vector2d px(kpt.x, kpt.y);
-  Vector3d f_vec_ref = camera_->cam2world(px);
-  Vector3d px_homo(px.x(), px.y(), 1.0);
+  Vector2d uv_ref(kpt_ref.x, kpt_ref.y);
+  Vector3d f_vec_ref = camera_->cam2world(uv_ref);
+  Vector3d px_homo(uv_ref.x(), uv_ref.y(), 1.0);
   Vector3d epiline = px_homo.transpose() * F;
   std::string tmp_post = std::tmpnam(nullptr);
-  std::ofstream file("/tmp/ncc_log_"+tmp_post+".score");
+  std::ofstream file(tmp_post+".ncc_score");
+  file << ref_idx << " " << cur_idx << endl;
+  file << uv_ref.x() << " " << uv_ref.y() << endl;
   while (z_min < z_max) {
     Vector3d pt_ref = f_vec_ref * z_min;
     Vector3d pt_cur = T_cur_ref * pt_ref;
@@ -179,7 +186,7 @@ void DepthAnalysis::run_two_view() {
 
     // calculate NCC score
     auto img_ref_norm = df::utils::normalize_image(
-        img_ref_copy, kpt.y-half_patch_size, kpt.x-half_patch_size,
+        img_ref_copy, kpt_ref.y-half_patch_size, kpt_ref.x-half_patch_size,
         patch_size, patch_size);
     auto img_cur_norm = df::utils::normalize_image(
         img_cur_copy, uv_cur.y()-half_patch_size, uv_cur.x()-half_patch_size,
@@ -188,7 +195,7 @@ void DepthAnalysis::run_two_view() {
     auto img_cur_ptr = img_cur_norm.ptr<float>();
     float ncc_score = df::utils::cross_correlation_single_patch(
         img_ref_ptr, img_cur_ptr, img_ref.cols, img_cur.cols,
-        kpt.x-half_patch_size, kpt.y-half_patch_size,
+        kpt_ref.x-half_patch_size, kpt_ref.y-half_patch_size,
         uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
         patch_size, patch_size);
     cout  << "\t z_max = " << z_max
@@ -205,7 +212,7 @@ void DepthAnalysis::run_two_view() {
     cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);
     cv::cvtColor(img_cur_n, img_cur_n, CV_GRAY2BGR);
 
-    cv::rectangle(img_ref_n, cv::Point2f(kpt.x-4, kpt.y-4), cv::Point2f(kpt.x+4, kpt.y+4), cv::Scalar(255, 0, 0));
+    cv::rectangle(img_ref_n, cv::Point2f(kpt_ref.x-4, kpt_ref.y-4), cv::Point2f(kpt_ref.x+4, kpt_ref.y+4), cv::Scalar(255, 0, 0));
     cv::rectangle(img_cur_n, cv::Point2f(uv_cur.x()-4, uv_cur.y()-4), cv::Point2f(uv_cur.x()+4, uv_cur.y()+4), cv::Scalar(0, 255, 0));
     draw_line(epiline, img_cur_n);
 
