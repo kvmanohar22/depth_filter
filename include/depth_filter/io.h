@@ -17,6 +17,7 @@ public:
   bool read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w);
   bool read_vel(size_t idx, df::PointCloud *cloud);
   size_t n_imgs() const { return img_paths_.size(); }
+  Sophus::SE3 T_cam0_vel() { return T_cam0_vel_; }
 
 private:
   std::vector<std::string> img_paths_;
