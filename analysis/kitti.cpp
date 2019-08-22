@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 
 #include "depth_filter/global.hpp"
 #include "depth_filter/io.h"
@@ -87,6 +88,10 @@ void DepthAnalysis::run_two_view() {
   io_->read_set(3, ts_cur, img_cur, T_w_cur);
   io_->read_vel(2, &cloud);
   cout << "Read " << cloud.npts() << " velodyne points" << endl;
+  auto img_ref_copy = img_ref.clone();
+  auto img_cur_copy = img_cur.clone();
+  img_ref_copy.convertTo(img_ref_copy, CV_32F);
+  img_cur_copy.convertTo(img_cur_copy, CV_32F);
 
 #ifdef DEBUG_YES
   cv::imshow("ref", img_ref);
@@ -113,6 +118,37 @@ void DepthAnalysis::run_two_view() {
   cv::waitKey(0);
 #endif
 
+  // optical flow
+  const double klt_win_size = 30.0;
+  const int klt_max_iter = 30;
+  const double klt_eps = 0.001;
+  vector<uchar> status;
+  vector<float> error;
+  vector<cv::Point2f> px_ref, px_cur;
+  std::for_each(kps_ref.begin(), kps_ref.end(), [&](cv::KeyPoint &kpt) {
+    px_ref.emplace_back(kpt.pt);
+  });
+  px_cur.insert(px_cur.begin(), px_ref.begin(), px_ref.end());
+  cv::TermCriteria termcrit(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, klt_max_iter, klt_eps);
+  cv::calcOpticalFlowPyrLK(img_ref, img_cur,
+                           px_ref, px_cur,
+                           status, error,
+                           cv::Size2i(klt_win_size, klt_win_size),
+                           4, termcrit, cv::OPTFLOW_USE_INITIAL_FLOW);
+
+  vector<cv::Point2f>::iterator px_ref_it = px_ref.begin();
+  vector<cv::Point2f>::iterator px_cur_it = px_cur.begin();
+  for(size_t i=0; px_ref_it != px_ref.end(); ++i) {
+    if(!status[i]) {
+      px_ref_it = px_ref.erase(px_ref_it);
+      px_cur_it = px_cur.erase(px_cur_it);
+      continue;
+    }
+    ++px_ref_it;
+    ++px_cur_it;
+  }
+
+  // compute epiline
   auto T_cur_ref = T_w_cur.inverse() * T_w_ref;
   auto R_cur_ref = T_cur_ref.rotation_matrix();
   auto t = T_cur_ref.translation();
@@ -134,10 +170,8 @@ void DepthAnalysis::run_two_view() {
   Vector3d f_vec_ref = camera_->cam2world(px);
   Vector3d px_homo(px.x(), px.y(), 1.0);
   Vector3d epiline = px_homo.transpose() * F;
-  auto img_ref_copy = img_ref.clone();
-  auto img_cur_copy = img_cur.clone();
-  img_ref_copy.convertTo(img_ref_copy, CV_32F);
-  img_cur_copy.convertTo(img_cur_copy, CV_32F);
+  std::string tmp_post = std::tmpnam(nullptr);
+  std::ofstream file("/tmp/ncc_log_"+tmp_post+".score");
   while (z_min < z_max) {
     Vector3d pt_ref = f_vec_ref * z_min;
     Vector3d pt_cur = T_cur_ref * pt_ref;
@@ -163,6 +197,9 @@ void DepthAnalysis::run_two_view() {
           << "\t uv = " << uv_cur.transpose()
           << "\t ncc = " << ncc_score
           << endl;
+
+    file << z_min << " " << ncc_score << endl;
+
     cv::Mat img_ref_n = img_ref.clone();
     cv::Mat img_cur_n = img_cur.clone();
     cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);

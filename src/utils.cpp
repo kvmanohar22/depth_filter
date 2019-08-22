@@ -23,7 +23,6 @@ float cross_correlation_single_patch(
     for (size_t c = 0; c < tx; ++c) {
       auto f_val = *(f + (start_idx_fy + r) * f_cols + start_idx_fx + c);
       auto g_val = *(g + (start_idx_gy + r) * g_cols + start_idx_gx + c);
-      cout << f_val << "\t" << g_val << endl;
       score += f_val * g_val;
     }
   }
