@@ -57,7 +57,7 @@ cv::Mat normalize_image(cv::Mat &img,
   assert(img.type() == CV_32F);
 
   if (r_idx < 0 || c_idx < 0 || r_idx > img.rows || c_idx > img.cols) {
-    cerr << "WARNING: indices are out of bounds\n";
+    cerr << "WARNING: indices are out of bounds in image normalization\n";
     return img.clone();
   }
 

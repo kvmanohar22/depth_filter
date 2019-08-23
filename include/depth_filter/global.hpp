@@ -14,6 +14,7 @@
 #include <opencv2/core/mat.hpp>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
 #include <Eigen/StdVector>
 #include <Eigen/src/Core/Matrix.h>
 

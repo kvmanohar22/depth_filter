@@ -284,8 +284,6 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
 }
 
 bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
-  cout << "Analysis between; ref = " << ref_idx_ << "\t cur = " << cur_idx << endl;
-
   // load current image data
   cv::Mat img_cur;
   double ts_cur;
@@ -309,18 +307,24 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
   auto K = cam->K();
   auto F = K.transpose().inverse() * E * K.inverse();
 
+  // It's breaking at this point; TODO: why?
+  if (idx == 12952)
+    return false;
+
   // Go through each lidar point and analyze stats
   auto pt_idx = cloud_order_[idx];
   auto ref_pt = std::get<0>(lidar_kps_[pt_idx]);
   auto ref_uv = std::get<1>(lidar_kps_[pt_idx]);
 
-  if (ref_pt.z() < upper_thresh) {
-    cout << "WARNING: below upper threshold\n";
+  if (ref_pt.z() < upper_thresh)
     return false;
-  }
 
   // if (ref_pt.z() > lower_thresh)
   //   return;
+
+#ifdef DEBUG_YES
+  cout << "\t ref = " << ref_idx_ << "\t cur = " << cur_idx << endl;
+#endif
 
   float z_min = 0.2 * ref_pt.z();
   float z_max = 1.4 * ref_pt.z();
@@ -332,9 +336,11 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
   px_homo.normalize();
   Vector3d epiline = px_homo.transpose() * F;
 
-  std::string filename = "/tmp/df_upper_stats_N_view/idx_"+
+  std::string filename = "/home/kv/slam/depth_filter/analysis/logs/df_lower_stats_nview/idx_"+
     to_string(idx)+"_point_"+to_string(cloud_order_[idx])+"_ref_"+
     to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+  if (boost::filesystem::exists(filename))
+    return false;
   std::ofstream file(filename);
   file << ref_idx_ << " " << cur_idx << endl;
   file << ref_uv.x << " " << ref_uv.y << endl;
@@ -342,8 +348,8 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
 
   auto z_vec = df::utils::linspace(z_min, z_max, n_moves);
 
-  for (const auto &itr: z_vec) {
-    Vector3d pt_ref = f_vec_ref * itr;
+  for (size_t ii = 0; ii < z_vec.size(); ++ii) {
+    Vector3d pt_ref = f_vec_ref * z_vec[ii];
     Vector3d pt_cur = T_cur_ref * pt_ref;
     Vector2d uv_cur = camera_->world2cam(pt_cur);
 
@@ -365,15 +371,17 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
         ref_uv.x-half_patch_size, ref_uv.y-half_patch_size,
         uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
         patch_size, patch_size);
+
+    file << z_vec[ii] << " " << ncc_score << endl;
+
+#ifdef DEBUG_YES
     cout  << "z_min = " << z_min
           << "\t z_true = " << ref_pt.z()
-          << "\t z_cur = " << itr
+          << "\t z_cur = " << z_vec[ii]
           << "\t z_max = " << z_max
           << "\t uv = " << uv_cur.transpose()
           << "\t ncc = " << ncc_score
           << endl;
-
-    file << itr << " " << ncc_score << endl;
 
     cv::Mat img_ref_n = ref_img_.clone();
     cv::Mat img_cur_n = img_cur.clone();
@@ -391,6 +399,7 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
     cv::imshow("img_ref", img_ref_n);
     cv::imshow("img_cur", img_cur_n);
     cv::waitKey(1);
+#endif
   }
   return true;
 }
