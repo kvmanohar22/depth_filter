@@ -68,6 +68,7 @@ public:
   DepthAnalysis(size_t ref_idx);
   ~DepthAnalysis();
   void run_two_view(size_t cur_idx);
+  bool run_two_view_single_patch(size_t cur_idx, size_t idx);
   void run_N_view();
 
 protected:
@@ -204,11 +205,11 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     auto ref_pt = std::get<0>(lidar_kps_[idx]);
     auto ref_uv = std::get<1>(lidar_kps_[idx]);
 
-    // if (ref_pt.z() < upper_thresh)
-    //   continue;
-
-    if (ref_pt.z() > lower_thresh)
+    if (ref_pt.z() < upper_thresh)
       continue;
+
+    // if (ref_pt.z() > lower_thresh)
+    //   continue;
 
     float z_min = 0.2 * ref_pt.z();
     float z_max = 1.4 * ref_pt.z();
@@ -220,7 +221,8 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     Vector3d epiline = px_homo.transpose() * F;
 
     // TODO: change the file name dynamically
-    std::string filename = "/tmp/df_lower_stats/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+"_idx_"+to_string(i)+".score";
+    std::string filename = "/tmp/df_upper_stats/ref_"+
+      to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+"_idx_"+to_string(i)+".score";
     std::ofstream file(filename);
     file << ref_idx_ << " " << cur_idx << endl;
     file << ref_uv.x << " " << ref_uv.y << endl;
@@ -266,8 +268,12 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
       cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);
       cv::cvtColor(img_cur_n, img_cur_n, CV_GRAY2BGR);
 
-      cv::rectangle(img_ref_n, cv::Point2f(ref_uv.x-half_patch_size, ref_uv.y-half_patch_size), cv::Point2f(ref_uv.x+half_patch_size, ref_uv.y+half_patch_size), cv::Scalar(255, 0, 0));
-      cv::rectangle(img_cur_n, cv::Point2f(uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size), cv::Point2f(uv_cur.x()+half_patch_size, uv_cur.y()+half_patch_size), cv::Scalar(0, 255, 0));
+      cv::rectangle(img_ref_n,
+          cv::Point2f(ref_uv.x-half_patch_size, ref_uv.y-half_patch_size),
+          cv::Point2f(ref_uv.x+half_patch_size, ref_uv.y+half_patch_size), cv::Scalar(255, 0, 0));
+      cv::rectangle(img_cur_n,
+          cv::Point2f(uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size),
+          cv::Point2f(uv_cur.x()+half_patch_size, uv_cur.y()+half_patch_size), cv::Scalar(0, 255, 0));
       draw_line(epiline, img_cur_n);
 
       cv::imshow("img_ref", img_ref_n);
@@ -275,20 +281,138 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
       cv::waitKey(10);
     }
   }
+}
 
+bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
+  cout << "Analysis between; ref = " << ref_idx_ << "\t cur = " << cur_idx << endl;
+
+  // load current image data
+  cv::Mat img_cur;
+  double ts_cur;
+  Sophus::SE3 T_w_cur;
+  io_->read_set(cur_idx, ts_cur, img_cur, T_w_cur);
+  auto img_ref_copy = ref_img_.clone();
+  auto img_cur_copy = img_cur.clone();
+  img_ref_copy.convertTo(img_ref_copy, CV_32F);
+  img_cur_copy.convertTo(img_cur_copy, CV_32F);
+
+  // Epipolar lines
+  auto T_cur_ref = T_w_cur.inverse() * T_w_ref_;
+  auto R_cur_ref = T_cur_ref.rotation_matrix();
+  auto t = T_cur_ref.translation();
+  Eigen::Matrix3d t_hat;
+  t_hat << 0, -t(2), t(1),
+           t(2), 0, -t(0),
+          -t(1), t(0), 0;
+  auto E = R_cur_ref * t_hat;
+  auto cam = static_cast<Pinhole*>(camera_);
+  auto K = cam->K();
+  auto F = K.transpose().inverse() * E * K.inverse();
+
+  // Go through each lidar point and analyze stats
+  auto pt_idx = cloud_order_[idx];
+  auto ref_pt = std::get<0>(lidar_kps_[pt_idx]);
+  auto ref_uv = std::get<1>(lidar_kps_[pt_idx]);
+
+  if (ref_pt.z() < upper_thresh) {
+    cout << "WARNING: below upper threshold\n";
+    return false;
+  }
+
+  // if (ref_pt.z() > lower_thresh)
+  //   return;
+
+  float z_min = 0.2 * ref_pt.z();
+  float z_max = 1.4 * ref_pt.z();
+  float dz = 0.2f;
+
+  Vector2d uv_ref(ref_uv.x, ref_uv.y);
+  Vector3d f_vec_ref = camera_->cam2world(uv_ref);
+  Vector3d px_homo(uv_ref.x(), uv_ref.y(), 1.0);
+  px_homo.normalize();
+  Vector3d epiline = px_homo.transpose() * F;
+
+  std::string filename = "/tmp/df_upper_stats_N_view/idx_"+
+    to_string(idx)+"_point_"+to_string(cloud_order_[idx])+"_ref_"+
+    to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+  std::ofstream file(filename);
+  file << ref_idx_ << " " << cur_idx << endl;
+  file << ref_uv.x << " " << ref_uv.y << endl;
+  file << ref_pt.z() << " " << idx << endl;
+
+  auto z_vec = df::utils::linspace(z_min, z_max, n_moves);
+
+  for (const auto &itr: z_vec) {
+    Vector3d pt_ref = f_vec_ref * itr;
+    Vector3d pt_cur = T_cur_ref * pt_ref;
+    Vector2d uv_cur = camera_->world2cam(pt_cur);
+
+    if (!camera_->is_in_frame(uv_cur.cast<int>())) {
+      continue;
+    }
+
+    // calculate NCC score
+    auto img_ref_norm = df::utils::normalize_image(
+        img_ref_copy, ref_uv.y-half_patch_size, ref_uv.x-half_patch_size,
+        patch_size, patch_size);
+    auto img_cur_norm = df::utils::normalize_image(
+        img_cur_copy, uv_cur.y()-half_patch_size, uv_cur.x()-half_patch_size,
+        patch_size, patch_size);
+    auto img_ref_ptr = img_ref_norm.ptr<float>();
+    auto img_cur_ptr = img_cur_norm.ptr<float>();
+    float ncc_score = df::utils::cross_correlation_single_patch(
+        img_ref_ptr, img_cur_ptr, ref_img_.cols, img_cur.cols,
+        ref_uv.x-half_patch_size, ref_uv.y-half_patch_size,
+        uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
+        patch_size, patch_size);
+    cout  << "z_min = " << z_min
+          << "\t z_true = " << ref_pt.z()
+          << "\t z_cur = " << itr
+          << "\t z_max = " << z_max
+          << "\t uv = " << uv_cur.transpose()
+          << "\t ncc = " << ncc_score
+          << endl;
+
+    file << itr << " " << ncc_score << endl;
+
+    cv::Mat img_ref_n = ref_img_.clone();
+    cv::Mat img_cur_n = img_cur.clone();
+    cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);
+    cv::cvtColor(img_cur_n, img_cur_n, CV_GRAY2BGR);
+
+    cv::rectangle(img_ref_n,
+        cv::Point2f(ref_uv.x-half_patch_size, ref_uv.y-half_patch_size),
+        cv::Point2f(ref_uv.x+half_patch_size, ref_uv.y+half_patch_size), cv::Scalar(255, 0, 0));
+    cv::rectangle(img_cur_n,
+        cv::Point2f(uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size),
+        cv::Point2f(uv_cur.x()+half_patch_size, uv_cur.y()+half_patch_size), cv::Scalar(0, 255, 0));
+    draw_line(epiline, img_cur_n);
+
+    cv::imshow("img_ref", img_ref_n);
+    cv::imshow("img_cur", img_cur_n);
+    cv::waitKey(1);
+  }
+  return true;
 }
 
 void DepthAnalysis::run_N_view() {
 
-  size_t start_frame_idx = ref_idx;
-  size_t end_frame_idx   = start_frame_idx + 100;
+  size_t current_frame_idx = ref_idx_+1;
+  size_t end_frame_idx   = current_frame_idx + 20;
 
-  while (start_frame_idx < end_frame_idx) {
-
+  for (size_t i = 0; i < lidar_kps_.size(); ++i) {
+    cout << "Processing " << i << " / " << lidar_kps_.size() << endl;
+    size_t current_frame_idx = ref_idx_+1;
+    while (current_frame_idx < end_frame_idx) {
+      if(!run_two_view_single_patch(current_frame_idx, i))
+        break;
+      ++current_frame_idx;
+    }
   }
 }
 
 int main() {
   DepthAnalysis analyzer(ref_idx);
-  analyzer.run_two_view(ref_idx+1);
+  // analyzer.run_two_view(ref_idx+1);
+  analyzer.run_N_view();
 }
