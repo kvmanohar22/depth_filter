@@ -91,6 +91,19 @@ cv::Mat normalize_image(cv::Mat &img,
 void normalized_cross_correlation(cv::Mat &f, cv::Mat &g);
 
 bool load_kitti_velodyne_scan(std::string file, df::PointCloud *cloud);
+
+template <typename T>
+std::vector<T> linspace(T a, T b, size_t N) {
+  T h = (b - a) / static_cast<T>(N - 1);
+  std::vector<T> xs(N);
+  T val = a;
+  for (auto &itr : xs) {
+      itr = val;
+      val += h;
+  }
+  return xs;
+}
+
 } // namespace utils
 
 } // namespace df

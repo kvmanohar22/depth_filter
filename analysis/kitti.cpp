@@ -21,6 +21,7 @@ static const int half_patch_size = patch_size / 2;
 static const int ref_idx = 27;
 static const int cur_idx = 30;
 
+static const int n_moves = 100; /// Number of moves along optical ray
 
 bool valid(Vector2d &pt) {
   if (pt.x() < 0 || pt.y() < 0 ||
@@ -180,10 +181,17 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     file << ref_idx_ << " " << cur_idx << endl;
     file << ref_uv.x << " " << ref_uv.y << endl;
     file << ref_pt.z() << endl;
-    while (z_min < z_max) {
-      Vector3d pt_ref = f_vec_ref * z_min;
+
+    auto z_vec = df::utils::linspace(z_min, z_max, n_moves);
+
+    for (const auto &itr: z_vec) {
+      Vector3d pt_ref = f_vec_ref * itr;
       Vector3d pt_cur = T_cur_ref * pt_ref;
       Vector2d uv_cur = camera_->world2cam(pt_cur);
+
+      if (!camera_->is_in_frame(uv_cur.cast<int>())) {
+        continue;
+      }
 
       // calculate NCC score
       auto img_ref_norm = df::utils::normalize_image(
@@ -199,28 +207,28 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
           ref_uv.x-half_patch_size, ref_uv.y-half_patch_size,
           uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size,
           patch_size, patch_size);
-      cout  << "\t z_true = " << ref_pt.z()
-            << "\t z_cur = " << z_min
+      cout  << "z_min = " << z_min
+            << "\t z_true = " << ref_pt.z()
+            << "\t z_cur = " << itr
             << "\t z_max = " << z_max
             << "\t uv = " << uv_cur.transpose()
             << "\t ncc = " << ncc_score
             << endl;
 
-      file << z_min << " " << ncc_score << endl;
+      file << itr << " " << ncc_score << endl;
 
       cv::Mat img_ref_n = ref_img_.clone();
       cv::Mat img_cur_n = img_cur.clone();
       cv::cvtColor(img_ref_n, img_ref_n, CV_GRAY2BGR);
       cv::cvtColor(img_cur_n, img_cur_n, CV_GRAY2BGR);
 
-      cv::rectangle(img_ref_n, cv::Point2f(ref_uv.x-4, ref_uv.y-4), cv::Point2f(ref_uv.x+4, ref_uv.y+4), cv::Scalar(255, 0, 0));
-      cv::rectangle(img_cur_n, cv::Point2f(uv_cur.x()-4, uv_cur.y()-4), cv::Point2f(uv_cur.x()+4, uv_cur.y()+4), cv::Scalar(0, 255, 0));
+      cv::rectangle(img_ref_n, cv::Point2f(ref_uv.x-half_patch_size, ref_uv.y-half_patch_size), cv::Point2f(ref_uv.x+half_patch_size, ref_uv.y+half_patch_size), cv::Scalar(255, 0, 0));
+      cv::rectangle(img_cur_n, cv::Point2f(uv_cur.x()-half_patch_size, uv_cur.y()-half_patch_size), cv::Point2f(uv_cur.x()+half_patch_size, uv_cur.y()+half_patch_size), cv::Scalar(0, 255, 0));
       draw_line(epiline, img_cur_n);
 
       cv::imshow("img_ref", img_ref_n);
       cv::imshow("img_cur", img_cur_n);
       cv::waitKey(0);
-      z_min += dz;
     }
   }
 
