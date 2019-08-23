@@ -23,6 +23,10 @@ static const int cur_idx = 30;
 
 static const int n_moves = 100; /// Number of moves along optical ray
 
+static const int upper_thresh = 40;
+static const int lower_thresh = 30;
+static const float well_textured_thresh = 1e-2;
+
 bool valid(Vector2d &pt) {
   if (pt.x() < 0 || pt.y() < 0 ||
       pt.x() > IMG_W || pt.y() > IMG_H)
@@ -68,6 +72,7 @@ public:
 
 protected:
   void load_ref();
+  bool is_well_textured(Vector2i px);
 
 private:
   string          root_dir_;
@@ -84,9 +89,12 @@ private:
   vector<tuple<Vector3d, cv::Point2f> > lidar_kps_;
   Sophus::SE3          T_cam0_vel_;
   vector<size_t>       cloud_order_;
+  size_t               n_not_well_textured_;
 };
 
-DepthAnalysis::DepthAnalysis(size_t ref_idx) : ref_idx_(ref_idx) {
+DepthAnalysis::DepthAnalysis(size_t ref_idx)
+  : ref_idx_(ref_idx),
+    n_not_well_textured_(0) {
   camera_ = new df::Pinhole(1241, 376, 718.856, 718.856, 607.1928, 185.2157);
   root_dir_= std::getenv("DATA_KITTI");
   io_ = new IO(root_dir_+"/00");
@@ -112,10 +120,12 @@ void DepthAnalysis::load_ref() {
     Vector3d xyz_ref = T_cam0_vel_ * xyz_lidar.cast<double>();
     if (xyz_ref.z() > 0) {
       Vector2d uv_ref = camera_->world2cam(xyz_ref);
-      if (camera_->is_in_frame(uv_ref.cast<int>(), 4)) {
-        auto kpt = cv::Point2f(uv_ref.x(), uv_ref.y());
-        auto obs = std::make_tuple(xyz_ref, kpt);
-        lidar_kps_.push_back(obs);
+      if (camera_->is_in_frame(uv_ref.cast<int>(), 8)) {
+        if (is_well_textured(uv_ref.cast<int>())) {
+          auto kpt = cv::Point2f(uv_ref.x(), uv_ref.y());
+          auto obs = std::make_tuple(xyz_ref, kpt);
+          lidar_kps_.push_back(obs);
+        }
       }
     }
   });
@@ -124,6 +134,7 @@ void DepthAnalysis::load_ref() {
     cloud_order_[i] = i;
   std::random_shuffle(cloud_order_.begin(), cloud_order_.end());
   cout << "Number of lidar points in ref = " << lidar_kps_.size() << endl;
+  cout << "Number of lidar points not well textured = " << n_not_well_textured_ << endl;
 
   auto temp_img = ref_img_.clone();
   cv::cvtColor(temp_img, temp_img, CV_GRAY2BGR);
@@ -132,6 +143,32 @@ void DepthAnalysis::load_ref() {
   });
   cv::imshow("lidar points", temp_img);
   cv::waitKey(0);
+}
+
+bool DepthAnalysis::is_well_textured(Vector2i px) {
+  auto img_temp = ref_img_.clone();
+  img_temp.convertTo(img_temp, CV_32F);
+  auto img_ptr = img_temp.ptr<float>();
+  float mean = 0.0f;
+  size_t max_r = px.y()+half_patch_size;
+  size_t max_c = px.x()+half_patch_size;
+  for (size_t r = px.y()-half_patch_size; r < max_r; ++r)
+    for (size_t c = px.x()-half_patch_size; c < max_c; ++c)
+      mean += *(img_ptr + r*img_temp.cols+c);
+  mean /= (patch_size*patch_size);
+  vector<float> residuals;
+  for (size_t r = px.y()-half_patch_size; r < max_r; ++r) {
+    for (size_t c = px.x()-half_patch_size; c < max_c; ++c) {
+      float diff = *(img_ptr + r*img_temp.cols+c) - mean;
+      auto diff2 = diff*diff;
+      residuals.push_back(diff2);
+    }
+  }
+  if (sqrt(std::accumulate(residuals.begin(), residuals.end(), 0.0f)) < well_textured_thresh) {
+    ++n_not_well_textured_;
+    return false;
+  }
+  return true;
 }
 
 void DepthAnalysis::run_two_view(size_t cur_idx) {
@@ -166,6 +203,13 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     auto idx = cloud_order_[i];
     auto ref_pt = std::get<0>(lidar_kps_[idx]);
     auto ref_uv = std::get<1>(lidar_kps_[idx]);
+
+    // if (ref_pt.z() < upper_thresh)
+    //   continue;
+
+    if (ref_pt.z() > lower_thresh)
+      continue;
+
     float z_min = 0.2 * ref_pt.z();
     float z_max = 1.4 * ref_pt.z();
     float dz = 0.2f;
@@ -175,12 +219,12 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     Vector3d px_homo(uv_ref.x(), uv_ref.y(), 1.0);
     Vector3d epiline = px_homo.transpose() * F;
 
-    // TODO: change the file name dynamically  
-    std::string filename = "/tmp/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+    // TODO: change the file name dynamically
+    std::string filename = "/tmp/df_lower_stats/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+"_idx_"+to_string(i)+".score";
     std::ofstream file(filename);
     file << ref_idx_ << " " << cur_idx << endl;
     file << ref_uv.x << " " << ref_uv.y << endl;
-    file << ref_pt.z() << endl;
+    file << ref_pt.z() << " " << i << endl;
 
     auto z_vec = df::utils::linspace(z_min, z_max, n_moves);
 
@@ -228,7 +272,7 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
 
       cv::imshow("img_ref", img_ref_n);
       cv::imshow("img_cur", img_cur_n);
-      cv::waitKey(0);
+      cv::waitKey(10);
     }
   }
 
