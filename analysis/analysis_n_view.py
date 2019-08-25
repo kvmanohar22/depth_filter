@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import collections
 from natsort import natsorted, ns
 import numpy as np
 from os.path import join
@@ -9,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import argrelextrema
 plt.style.use('ggplot')
  
-BASE = "./logs/df_upper_nview_stats"
+BASE = "./logs/df_upper_stats_nview"
 
 def analyze_single_file(src, png):
     plt.cla()
@@ -43,19 +44,24 @@ def generate_nview_stats(dir):
 
     files = os.listdir(join(dir, 'scores'))
     files = [join(dir, 'scores', file) for file in files]
+    flag = False
     for file in files: 
         data = np.loadtxt(file)
         data = data[2:, :]
         z_true = data[0, 0]
         data = data[1:, :]
         if len(data) == 100:
+            flag = True
             break
+    if not flag:
+        print('Not considering this...quit')
+        return
     z_range = data[:, 0]
-    z_true_idx = np.argmin(np.square(z_range-z_true))
-    aggregated_hist = {}
-    aggregated_hist.update(zip(z_range, np.zeros_like(z_range).astype(np.int32))) 
-    colors = ['forestgreen' for _ in range(100)]
-    colors[z_true_idx] = 'r'
+    z_true_from_range = z_range[np.argmin(np.square(z_range-z_true))]
+    aggregated_hist = collections.OrderedDict(zip(z_range, np.zeros_like(z_range).astype(np.int32))) 
+    colors = ['forestgreen' for _ in z_range]
+    colors_hash = collections.OrderedDict(zip(z_range, colors)) 
+    colors_hash[z_true_from_range] = 'r'
     for file in files:
         data = np.loadtxt(file)
         data = data[2:, :]
@@ -67,10 +73,12 @@ def generate_nview_stats(dir):
         min_dist_vals = z_range[min_dist_idxs]
         if isinstance(min_dist_vals, np.float64):
             min_dist_vals = [min_dist_vals]
-        for update_i in range(len(min_dist_vals)):
-            aggregated_hist[min_dist_vals[update_i]] += 1
-    plt.bar(aggregated_hist.keys(), aggregated_hist.values(), color=colors)
-    plt.xlabel('d (in meters')
+        if len(min_dist_vals) == 0:
+            continue
+        for update_i in min_dist_vals:
+            aggregated_hist[update_i] += 1
+    plt.bar(aggregated_hist.keys(), aggregated_hist.values(), color=colors_hash.values())
+    plt.xlabel('d (in meters)')
     plt.ylabel('#local maxima')
     plt.title('20 observations $\hat d$ = {:.2f}'.format(z_true))
     plt.legend()
@@ -98,8 +106,18 @@ if __name__ == '__main__':
     files = natsorted(os.listdir(BASE), key=lambda x: x.lower())
     files = [file for file in files if os.path.isfile(join(BASE, file))]
     n_sets = len(files) // 20
-    for idx in range(n_sets):
-        move_files(files[idx*20:(idx+1)*20])
+    current_files = []
+    try:
+        idx = files[0].split('_')[1]
+    except IndexError:
+        pass
+    for file in files:
+        if file.split('_')[1] == idx:
+            current_files.append(file)
+        else:
+            idx = file.split('_')[1]
+            move_files(current_files)
+            current_files = [file]
     
     dirs = natsorted(os.listdir(BASE), key=lambda x: x.lower())
     dirs = [join(BASE, dir) for dir in dirs]

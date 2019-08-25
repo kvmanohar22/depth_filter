@@ -3,4 +3,6 @@ build/**
 cmake-build-debug/**
 .idea/**
 analysis/log/**
+analysis/logs/**
+analysis/*.md
 

@@ -21,7 +21,7 @@ static const int half_patch_size = patch_size / 2;
 static const int ref_idx = 27;
 static const int cur_idx = 30;
 
-static const int n_moves = 100; /// Number of moves along optical ray
+static const int n_moves = 150; /// Number of moves along optical ray
 
 static const int upper_thresh = 40;
 static const int lower_thresh = 30;
@@ -307,26 +307,24 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
   auto K = cam->K();
   auto F = K.transpose().inverse() * E * K.inverse();
 
-  // It's breaking at this point; TODO: why?
-  if (idx == 12952)
-    return false;
-
   // Go through each lidar point and analyze stats
   auto pt_idx = cloud_order_[idx];
   auto ref_pt = std::get<0>(lidar_kps_[pt_idx]);
   auto ref_uv = std::get<1>(lidar_kps_[pt_idx]);
 
-  if (ref_pt.z() < upper_thresh)
-    return false;
+  // if (ref_pt.z() < upper_thresh)
+  //   return false;
 
-  // if (ref_pt.z() > lower_thresh)
-  //   return;
+  if (ref_pt.z() > lower_thresh) {
+    cout << "WARNING: Too far away from camera center!\n";
+    return false;
+  }
 
 #ifdef DEBUG_YES
   cout << "\t ref = " << ref_idx_ << "\t cur = " << cur_idx << endl;
 #endif
 
-  float z_min = 0.2 * ref_pt.z();
+  float z_min = 0.05 * ref_pt.z();
   float z_max = 1.4 * ref_pt.z();
   float dz = 0.2f;
 
@@ -336,11 +334,14 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
   px_homo.normalize();
   Vector3d epiline = px_homo.transpose() * F;
 
-  std::string filename = "/home/kv/slam/depth_filter/analysis/logs/df_lower_stats_nview/idx_"+
-    to_string(idx)+"_point_"+to_string(cloud_order_[idx])+"_ref_"+
-    to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
-  if (boost::filesystem::exists(filename))
-    return false;
+  std::string df_dir = std::getenv("PROJECT_DF");
+  std::string new_dir = df_dir+"/analysis/logs/df_lower_stats_nview/idx_"+
+    to_string(idx)+"_point_"+to_string(cloud_order_[idx]);
+  std::string filename = new_dir+"/scores"+"/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+  if (!boost::filesystem::exists(new_dir)) {
+    boost::filesystem::create_directory(new_dir);
+    boost::filesystem::create_directory(new_dir+"/scores");
+  }
   std::ofstream file(filename);
   file << ref_idx_ << " " << cur_idx << endl;
   file << ref_uv.x << " " << ref_uv.y << endl;
@@ -354,6 +355,7 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
     Vector2d uv_cur = camera_->world2cam(pt_cur);
 
     if (!camera_->is_in_frame(uv_cur.cast<int>())) {
+      cout << "WARNING: Not in frame...skipping\n";
       continue;
     }
 

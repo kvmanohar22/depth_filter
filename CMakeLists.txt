@@ -10,7 +10,7 @@ find_package(fast REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(vikit_common REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system filesystem)
-# add_definitions(-DDEBUG_YES)
+add_definitions(-DDEBUG_YES)
 
 include_directories(
   include
