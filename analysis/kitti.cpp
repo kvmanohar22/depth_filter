@@ -21,7 +21,7 @@ static const int half_patch_size = patch_size / 2;
 static const int ref_idx = 27;
 static const int cur_idx = 30;
 
-static const int n_moves = 150; /// Number of moves along optical ray
+static const int n_moves = 200; /// Number of moves along optical ray
 
 static const int upper_thresh = 40;
 static const int lower_thresh = 30;
@@ -205,24 +205,31 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
     auto ref_pt = std::get<0>(lidar_kps_[idx]);
     auto ref_uv = std::get<1>(lidar_kps_[idx]);
 
-    if (ref_pt.z() < upper_thresh)
-      continue;
-
-    // if (ref_pt.z() > lower_thresh)
+    // if (ref_pt.z() < upper_thresh)
     //   continue;
 
-    float z_min = 0.2 * ref_pt.z();
-    float z_max = 1.4 * ref_pt.z();
-    float dz = 0.2f;
+    if (ref_pt.z() > lower_thresh || ref_pt.z() < 10) {
+      cout << "WARNING: Too far away from camera center!\n";
+      continue;
+    }
+
+    float z_min = 0.1 * ref_pt.z();
+    float z_max = 2.2 * ref_pt.z();
 
     Vector2d uv_ref(ref_uv.x, ref_uv.y);
     Vector3d f_vec_ref = camera_->cam2world(uv_ref);
     Vector3d px_homo(uv_ref.x(), uv_ref.y(), 1.0);
-    Vector3d epiline = px_homo.transpose() * F;
+    Vector3d epiline = px_homo.normalized().transpose() * F;
 
-    // TODO: change the file name dynamically
-    std::string filename = "/tmp/df_upper_stats/ref_"+
-      to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+"_idx_"+to_string(i)+".score";
+    std::string df_dir = std::getenv("PROJECT_DF");
+    std::string new_dir = df_dir+"/analysis/logs/df_lower_stats_nview/idx_"+
+      to_string(i)+"_point_"+to_string(cloud_order_[idx]);
+    std::string filename = new_dir+"/scores"+"/ref_"+to_string(ref_idx_)+"_cur_"+to_string(cur_idx)+".score";
+    if (!boost::filesystem::exists(new_dir)) {
+      boost::filesystem::create_directory(new_dir);
+      boost::filesystem::create_directory(new_dir+"/scores");
+    }
+
     std::ofstream file(filename);
     file << ref_idx_ << " " << cur_idx << endl;
     file << ref_uv.x << " " << ref_uv.y << endl;
@@ -236,6 +243,7 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
       Vector2d uv_cur = camera_->world2cam(pt_cur);
 
       if (!camera_->is_in_frame(uv_cur.cast<int>())) {
+        cout << "WARNING: Not in frame...skipping\n";
         continue;
       }
 
@@ -278,7 +286,7 @@ void DepthAnalysis::run_two_view(size_t cur_idx) {
 
       cv::imshow("img_ref", img_ref_n);
       cv::imshow("img_cur", img_cur_n);
-      cv::waitKey(10);
+      cv::waitKey(0);
     }
   }
 }
@@ -315,7 +323,7 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
   // if (ref_pt.z() < upper_thresh)
   //   return false;
 
-  if (ref_pt.z() > lower_thresh) {
+  if (ref_pt.z() > lower_thresh || ref_pt.z() < 10) {
     cout << "WARNING: Too far away from camera center!\n";
     return false;
   }
@@ -325,8 +333,7 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
 #endif
 
   float z_min = 0.05 * ref_pt.z();
-  float z_max = 1.4 * ref_pt.z();
-  float dz = 0.2f;
+  float z_max = 1.5 * ref_pt.z();
 
   Vector2d uv_ref(ref_uv.x, ref_uv.y);
   Vector3d f_vec_ref = camera_->cam2world(uv_ref);
@@ -400,7 +407,7 @@ bool DepthAnalysis::run_two_view_single_patch(size_t cur_idx, size_t idx) {
 
     cv::imshow("img_ref", img_ref_n);
     cv::imshow("img_cur", img_cur_n);
-    cv::waitKey(1);
+    cv::waitKey(0);
 #endif
   }
   return true;
@@ -424,6 +431,6 @@ void DepthAnalysis::run_N_view() {
 
 int main() {
   DepthAnalysis analyzer(ref_idx);
-  // analyzer.run_two_view(ref_idx+1);
-  analyzer.run_N_view();
+  analyzer.run_two_view(ref_idx+1);
+  // analyzer.run_N_view();
 }
