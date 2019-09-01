@@ -98,8 +98,8 @@ DepthAnalysis::DepthAnalysis(size_t ref_idx)
     n_not_well_textured_(0) {
   camera_ = new df::Pinhole(1241, 376, 718.856, 718.856, 607.1928, 185.2157);
   root_dir_= std::getenv("DATA_KITTI");
-  io_ = new IO(root_dir_+"/00");
-  T_cam0_vel_ = io_->T_cam0_vel();
+  io_ = new Kitti(root_dir_+"/00");
+  T_cam0_vel_ = dynamic_cast<io::Kitti*>(io_)->T_cam0_vel();
   cout << "Read " << io_->n_imgs() << " files\n";
 
   load_ref();
@@ -112,7 +112,7 @@ DepthAnalysis::~DepthAnalysis() {
 
 void DepthAnalysis::load_ref() {
   io_->read_set(ref_idx_, ref_ts_, ref_img_, T_w_ref_);  
-  io_->read_vel(ref_idx_, &cloud_);
+  dynamic_cast<io::Kitti*>(io_)->read_vel(ref_idx_, &cloud_);
   cout << "Read " << cloud_.npts() << " velodyne points" << endl;
   auto img_ref_copy = ref_img_.clone();
 

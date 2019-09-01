@@ -8,7 +8,7 @@
 
 namespace io {
 
-IO::IO(std::string base) {
+Kitti::Kitti(std::string base) {
   const auto times_file = base + "/times.txt";
   const auto img_paths = base + "/image_0";
   const auto vel_paths = base + "/velodyne";
@@ -99,15 +99,75 @@ IO::IO(std::string base) {
   }
 }
 
-bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) {
+bool Kitti::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) const {
   ts = times_[idx];
   img = cv::imread(img_paths_[idx], 0);
   T_w_f = poses_[idx];
   return true;
 }
 
-bool IO::read_vel(size_t idx, df::PointCloud *cloud) {
+bool Kitti::read_vel(size_t idx, df::PointCloud *cloud) {
   df::utils::load_kitti_velodyne_scan(vel_paths_[idx], cloud);
+}
+
+Euroc::Euroc(std::string base, std::string hall_num)
+  : hall_num_(hall_num) 
+{
+  base = base + "/" + hall_num_ + "/mav0";
+  const auto pose_file  = base + "/pose.txt";
+  const auto img_paths = base + "/cam0/data";
+
+  // Read image paths
+  std::ifstream ftimes;
+  ftimes.open(times_file.c_str());
+  while(!ftimes.eof()) {
+    std::string s;
+    std::getline(ftimes, s);
+    if (!s.empty()) {
+      double ts;
+      std::string imgfile;
+      std::istringstream ss(s);
+      ss >> ts;
+      ss >> imgfile;
+      times_.push_back(ts);
+      img_paths_.push_back(img_paths + "/" + imgfile);
+    }
+  }
+
+  // Read poses
+  poses_.reserve(times_.size());
+  std::ifstream fposes;
+  fposes.open(pose_file.c_str());
+  double dummy;
+  for (size_t ii=0; ii<times_.size(); ++ii) {
+    std::string s;
+    std::getline(fposes, s);
+    Eigen::Matrix4d T_w_f = Eigen::Matrix4d::Identity();
+    
+    if (!s.empty()) {
+      double pose[7];
+      std::istringstream ss(s);
+      ss >> dummy;
+      size_t num = 0;
+      while (num < 7) {
+        ss >> pose[num];
+        ++num; 
+      }
+    }
+    Matrix3d R_w_f; Vector3d t_w_f;
+    for (size_t i=0;i<3;++i)
+      t_w_f(i) = pose[i];
+    utils::quaternion_to_rotation_matrix(pose+3, R_w_f);
+    Sophus::SE3 T_w_f(R_w_f, t_w_f);
+    poses_.emplace_back(T_w_f);
+  }
+}
+
+bool Euroc::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) const {
+  ts = times_[idx];
+  img = cv::imread(img_paths_[idx], 0);
+  T_w_f = poses_[idx];
+  return true;
 }
 
 } // namespace io
