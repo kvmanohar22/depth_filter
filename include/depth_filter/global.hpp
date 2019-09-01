@@ -27,6 +27,9 @@ namespace df {
   using namespace std;
   using namespace Eigen;
 
+  class Frame;
+  typedef boost::shared_ptr<Frame> FramePtr;
+
   static const float EPS = 1e-7;
 
 } // namespace df
