@@ -27,6 +27,7 @@ list(APPEND LIBS
   ${Boost_LIBRARIES}
   ${fast_LIBRARIES}
   ${Sophus_LIBRARIES}
+  glog
 )
 
 list(APPEND SRCS
@@ -54,3 +55,5 @@ target_link_libraries(test_utils depth_filter)
 add_executable(test_velo test/test_velodyne_scan_kitti.cpp)
 target_link_libraries(test_velo depth_filter)
 
+add_executable(test_df_kitti analysis/depth_filter_kitti.cpp)
+target_link_libraries(test_df_kitti depth_filter)

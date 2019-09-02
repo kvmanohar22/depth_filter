@@ -6,29 +6,31 @@
 
 namespace df {
 
+class Corner;
+
 class Frame {
 public:
   AbstractCamera*   cam_;         // camera
-  Matrix3d          R_f_w_;       // Rotation matrix from world to frame
-  Vector3d          t_f_w_;       // translation vector from world to frame
+  Sophus::SE3       T_f_w_;       // (w)orld -> (f)rame
   double            ts_;          // Timestamp of when the image was acquired
   long unsigned int idx_;         // Unique frame index
+  list<Corner*>     fts_;         // list of corners in the image (only valid corners)
 
   Frame() =default;
-  ~Frame() =default;
+ ~Frame() =default;
   Frame(Frame &frame);
   Frame(long unsigned int idx,
-       const cv::Mat &img, AbstractCamera *cam,
-       double ts);
+        const cv::Mat &img, AbstractCamera *cam,
+        double ts);
 
   /// Camera instance
   inline AbstractCamera* cam() { return cam_; }
 
   /// Return the pose of the frame in the (w)orld coordinate frame.
-  inline Vector3d pos() const { return -R_f_w_.transpose()*t_f_w_; }
+  inline Vector3d pos() const { return -T_f_w_.rotation_matrix().transpose()*T_f_w_.translation(); }
 
   /// Set poses
-  void set_pose(Matrix4d &T_w_f);
+  void set_pose(Sophus::SE3& T_w_f);
 }; // class Frame
 
 } // namespace df

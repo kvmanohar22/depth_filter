@@ -26,6 +26,7 @@ protected:
 class Kitti : public IO {
 public:
   Kitti(std::string env);
+  virtual ~Kitti() =default;
   bool read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w) const override;
   bool read_vel(size_t idx, df::PointCloud *cloud);
   Sophus::SE3 T_cam0_vel() { return T_cam0_vel_; }
@@ -33,18 +34,6 @@ public:
 private:
   Sophus::SE3              T_cam0_vel_; ///<! Velodyne to cam0
   std::vector<std::string> vel_paths_;
-};
-
-/*
- * pose.txt -> ts px py pz qw qx qy qz
- *
- */
-class Euroc : public IO {
-public:
-  Euroc(std::string env, std::string hall_num);
-  bool read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w) const override;
-
-  std::string hall_num_;
 };
 
 } // namespace io

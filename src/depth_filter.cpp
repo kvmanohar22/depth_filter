@@ -2,7 +2,9 @@
 
 namespace df {
 
-DepthFilter::DepthFilter() {}
+DepthFilter::DepthFilter() {
+  LOG(INFO) << "DepthFilter initialized...";
+}
 
 void DepthFilter::add_keyframe(FramePtr& frame) {
   DLOG(INFO) << "New KeyFrame added\n";

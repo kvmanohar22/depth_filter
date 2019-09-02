@@ -10,15 +10,8 @@ Frame::Frame(const long unsigned int idx,
              double ts) :
         cam_(cam), idx_(idx), ts_(ts) {}
 
-void Frame::set_pose(Matrix4d &T_w_f) {
-  Matrix3d R; Vector3d t;
-  for (size_t i = 0; i < 3; ++i)
-    for (size_t j = 0; j < 3; ++j)
-      R(i, j) = T_w_f(i, j);
-  for (size_t i = 0; i < 3; ++i)
-    t(i) = T_w_f(i, 3);
-  R_f_w_ = R.transpose();
-  t_f_w_ = -R_f_w_ * t;
+void Frame::set_pose(Sophus::SE3& T_w_f) {
+  T_f_w_ = T_w_f.inverse();
 }
 
 } // namespace df

@@ -13,7 +13,6 @@ enum class SeedsInitType {
   OUTSOURCE  
 };
 
-
 /// This implements sequential Bayesian updates for depth 
 class DepthFilter {
 public:
