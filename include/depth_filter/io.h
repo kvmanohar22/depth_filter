@@ -14,6 +14,7 @@ namespace io {
 class IO {
 public:
   IO() =default;
+ ~IO() =default;
   virtual bool read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_f_w) const =0;
   inline size_t n_imgs() const { return img_paths_.size(); }
 

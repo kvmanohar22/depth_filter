@@ -11,17 +11,13 @@ class Point;
 
 /// Corner in an image
 class Corner {
-private:
-  Vector2d px_;    // pixel in the original image at level 0
-  Vector3d f_;     // unit vector along the ray
-  Point*   xyz_;   // 3D point in the world coordinates 
-  FramePtr frame_; // frame in which this corner was first observed in
-
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   Corner() =default;
   Corner(Vector2d& px, FramePtr& frame)
     : px_(px),
-      f_(frame_->cam_->cam2world(px)),
+      f_(frame->cam_->cam2world(px)),
       xyz_(nullptr),
       frame_(frame)
   {}
@@ -30,6 +26,10 @@ public:
 
   inline bool is_valid() { return xyz_ != nullptr; }
 
+  Vector2d px_;    // pixel in the original image at level 0
+  Vector3d f_;     // unit vector along the ray
+  Point*   xyz_;   // 3D point in the world coordinates 
+  FramePtr frame_; // frame in which this corner was first observed in
 }; // class Corner
 
 } // namespace df

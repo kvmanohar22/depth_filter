@@ -109,7 +109,6 @@ DepthFilterTest::DepthFilterTest(size_t ref_idx)
 
 DepthFilterTest::~DepthFilterTest() {
   delete camera_;
-  delete io_;
 }
 
 bool DepthFilterTest::is_well_textured(Vector2i px) {
@@ -175,24 +174,35 @@ void DepthFilterTest::load_ref() {
 }
 
 void DepthFilterTest::run() {
+  float depth_mean = 50.0f, depth_min = 1.0f, depth_max = 500.0f;
+
   for (size_t i=ref_idx_; i < ref_idx_+50; ++i) {
-    size_t frame_idx; 
-    double frame_ts; 
-    cv::Mat frame_img;
-    Sophus::SE3 T_w_f; 
-    io_->read_set(frame_idx, frame_ts, frame_img, T_w_f);
+    // Load data
+    double frame_ts; cv::Mat frame_img; Sophus::SE3 T_w_f;
+    io_->read_set(i, frame_ts, frame_img, T_w_f);
 
     // initialize the depth filter
     if (i == ref_idx_) {
-      frame_ref_.reset(new Frame(frame_idx, frame_img, camera_, frame_ts));
+      frame_ref_.reset(new Frame(i, frame_img, camera_, frame_ts));
       frame_ref_->set_pose(T_w_f);
       depth_filter_ = new DepthFilter();
+      depth_filter_->add_keyframe(frame_ref_);
+      list<Seed>& seeds = depth_filter_->get_mutable_seeds();
+      for (size_t i=0; i<cloud_order_.size(); ++i) {
+        std::tuple<Vector3d, cv::Point2f>& kpt = lidar_kps_[cloud_order_[i]];
+        auto pt = std::get<1>(kpt);
+        Vector2d px(pt.x, pt.y);
+        Corner* new_corner = new Corner(px, frame_ref_);
+        seeds.emplace_back(Seed(depth_mean, depth_min, depth_max, new_corner));
+      }
+      DLOG(INFO) << "Number of initialized seeds = " << depth_filter_->n_seeds();
       continue;
     }
 
     // Now update the initialized seeds
-    frame_cur_.reset(new Frame(frame_idx, frame_img, camera_, frame_ts));
+    frame_cur_.reset(new Frame(i, frame_img, camera_, frame_ts));
     frame_cur_->set_pose(T_w_f);
+    depth_filter_->add_frame(frame_cur_);
   }  
 }
 

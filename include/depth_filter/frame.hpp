@@ -10,6 +10,8 @@ class Corner;
 
 class Frame {
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   AbstractCamera*   cam_;         // camera
   Sophus::SE3       T_f_w_;       // (w)orld -> (f)rame
   double            ts_;          // Timestamp of when the image was acquired

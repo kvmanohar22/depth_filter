@@ -31,7 +31,7 @@ namespace df {
   typedef boost::shared_ptr<Frame> FramePtr;
 
   static const float EPS = 1e-7;
-
+  static const double PI = 3.14159265359;
 } // namespace df
 
 #endif

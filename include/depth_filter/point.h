@@ -8,11 +8,9 @@ namespace df {
 class Corner;
 
 class Point {
-private:
-  Vector3d xyz_;
-  list<Corner*> obs_;
-
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   Point() =default;
   Point(Vector3d& xyz, Corner* corner)
     : xyz_(xyz) {
@@ -25,7 +23,9 @@ public:
   // Frame which observers this point
   inline Corner* first_obs() const { return obs_.front(); }
 
-
+private:
+  Vector3d xyz_;
+  list<Corner*> obs_;
 }; // class Point
 
 } // namespace df
