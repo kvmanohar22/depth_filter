@@ -18,7 +18,7 @@ public:
     b_(10),
     mu_(depth_mean),
     z_range_(depth_max - depth_min),
-    sigma2_(1/(depth_min*depth_min)), // TODO: Change this?
+    sigma2_(z_range_*z_range_/36), // TODO: Change this?
     corner_(corner)
   {}
 

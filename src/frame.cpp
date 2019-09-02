@@ -8,7 +8,7 @@ Frame::Frame(Frame &frame) :
 Frame::Frame(const long unsigned int idx,
              const cv::Mat &img, AbstractCamera *cam,
              double ts) :
-        cam_(cam), idx_(idx), ts_(ts) {}
+        cam_(cam), idx_(idx), ts_(ts), img_(img.clone()) {}
 
 void Frame::set_pose(Sophus::SE3& T_w_f) {
   T_f_w_ = T_w_f.inverse();

@@ -17,6 +17,7 @@ public:
   double            ts_;          // Timestamp of when the image was acquired
   long unsigned int idx_;         // Unique frame index
   list<Corner*>     fts_;         // list of corners in the image (only valid corners)
+  cv::Mat           img_;         // image
 
   Frame() =default;
  ~Frame() =default;

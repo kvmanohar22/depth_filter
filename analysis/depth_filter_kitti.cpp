@@ -22,7 +22,7 @@ static const int half_patch_size = patch_size / 2;
 static const int ref_idx = 1030;
 
 static const int upper_thresh = 40;
-static const int lower_thresh = 30;
+static const int lower_thresh = 20;
 static const float well_textured_thresh = 1e-2;
 
 bool valid(Vector2d &pt) {
@@ -146,7 +146,8 @@ void DepthFilterTest::load_ref() {
   // project all lidar points onto image
   std::for_each(cloud_.points_.begin(), cloud_.points_.end(), [&](Vector3f &xyz_lidar) {
     Vector3d xyz_ref = T_cam0_vel_ * xyz_lidar.cast<double>();
-    if (xyz_ref.z() > 0) {
+    // if (xyz_ref.z() > 0 && xyz_ref.z() > upper_thresh) {
+    if (xyz_ref.z() > 0 && xyz_ref.z() < lower_thresh) {
       Vector2d uv_ref = camera_->world2cam(xyz_ref);
       if (camera_->is_in_frame(uv_ref.cast<int>(), 8)) {
         if (is_well_textured(uv_ref.cast<int>())) {
@@ -174,7 +175,7 @@ void DepthFilterTest::load_ref() {
 }
 
 void DepthFilterTest::run() {
-  float depth_mean = 50.0f, depth_min = 1.0f, depth_max = 500.0f;
+  float depth_mean = 10.0f, depth_min = 1.0f, depth_max = 50.0f;
 
   for (size_t i=ref_idx_; i < ref_idx_+50; ++i) {
     // Load data

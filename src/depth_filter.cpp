@@ -1,4 +1,5 @@
 #include "depth_filter/depth_filter.h"
+#include "depth_filter/utils.h"
 #include "depth_filter/cameras/pinhole.hpp"
 
 #include <random>
@@ -60,21 +61,19 @@ void DepthFilter::update_seeds(FramePtr& frame) {
 
     // check along the epipolar line and find a maximum NCC patch
     // Refer: Video-based, Real-Time Multi View Stereo; Section 4.2
-    // TODO: Implementation is left
-    double z_along_ray_with_max_ncc;
-    float d_min = itr->mu_ - sqrt(itr->sigma2_);
-    float d_max = itr->mu_ + sqrt(itr->sigma2_);
+    float d_min = max(itr->mu_ - 2*sqrt(itr->sigma2_), 0.000001f);
+    float d_max = min(itr->mu_ + 2*sqrt(itr->sigma2_), 100000.0f);
     float d_new; // This depth corresponds to maximum NCC along epipolar line
-    if (!find_match_along_epipolar(itr->corner_->frame_, frame, itr->mu_, d_min, d_max, d_new)) {
+    if (!find_match_along_epipolar(itr->corner_->frame_, frame, itr->corner_, itr->mu_, d_min, d_max, d_new)) {
       itr->b_++;
       ++itr;
       continue;
     }
 
-    Vector3d rp = itr->corner_->f_ * z_along_ray_with_max_ncc;
+    Vector3d rp = itr->corner_->f_ * d_new;
     float tau = compute_tau(rp, T_cur_ref.inverse().translation(), itr->corner_->f_, one_px_angle);
 
-    update_seed(&*itr, z_along_ray_with_max_ncc, tau*tau);
+    update_seed(&*itr, d_new, tau*tau);
   }
 }
 
@@ -134,11 +133,39 @@ float DepthFilter::compute_tau(Vector3d rp, Vector3d t, Vector3d f, float one_px
 }
 
 bool DepthFilter::find_match_along_epipolar(
-      FramePtr frame_ref, FramePtr frame_cur,
+      FramePtr ref_frame, FramePtr cur_frame,
+      Corner* corner,
       float d_current, 
       float d_min, float d_max, float d_new) {
+  
+  Sophus::SE3 T_ref_cur = ref_frame->T_f_w_ * cur_frame->T_f_w_.inverse();
+  Vector2d pt_min = utils::project2d(T_ref_cur.inverse() * (corner->f_ * d_min)); 
+  Vector2d pt_max = utils::project2d(T_ref_cur.inverse() * (corner->f_ * d_max)); 
 
-  return false;  
+  Vector2d px_min(cur_frame->cam_->world2cam(pt_min));
+  Vector2d px_max(cur_frame->cam_->world2cam(pt_max));
+
+  float line_len = (px_max-px_min).norm();
+  size_t n_steps = line_len / 0.7;
+  DLOG(INFO) << "#Steps = " << n_steps;
+
+#ifdef DEBUG_YES
+  auto px = corner->px_;
+  auto img_ref = ref_frame->img_.clone();
+  auto img_cur = cur_frame->img_.clone();
+  cv::cvtColor(img_ref, img_ref, CV_GRAY2BGR);
+  cv::cvtColor(img_cur, img_cur, CV_GRAY2BGR);
+  // TODO: Draw this rectangle along epipolar line direction
+  cv::line(img_cur, cv::Point2f(px_min.x(), px_min.y()), cv::Point2f(px_max.x(), px_max.y()), cv::Scalar(255, 0, 0), 1, CV_AA);
+  cv::rectangle(img_ref, cv::Point2f(px.x()-2, px.y()-2), cv::Point2f(px.x()+2, px.y()+2), cv::Scalar(255, 0, 0), 1, CV_AA);
+  cv::circle(img_cur, cv::Point2f(px_min.x(), px_min.y()), 2, cv::Scalar(0, 255, 0), 2);
+  cv::circle(img_cur, cv::Point2f(px_max.x(), px_max.y()), 2, cv::Scalar(0, 0, 255), 2);
+  cv::imshow("ref image", img_ref);
+  cv::imshow("cur image", img_cur);
+  cv::waitKey(0);
+#endif 
+
+  return false;
 }
 
 

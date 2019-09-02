@@ -46,7 +46,7 @@ public:
 
   // Search for a patch along epipolar line with max. NCC score
   bool find_match_along_epipolar(FramePtr frame_ref, FramePtr frame_cur,
-        float d_current, float d_min, float d_max, float d_new);
+        Corner* corner, float d_current, float d_min, float d_max, float d_new);
 
   // compute variance in triangulation
   float compute_tau(Vector3d rp, Vector3d t, Vector3d f, float one_px_angle);
