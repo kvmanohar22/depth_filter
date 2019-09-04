@@ -7,6 +7,7 @@
 namespace df {
 
 class Corner;
+typedef vector<cv::Mat> ImgPyr;
 
 class Frame {
 public:
@@ -18,12 +19,13 @@ public:
   long unsigned int idx_;         // Unique frame index
   list<Corner*>     fts_;         // list of corners in the image (only valid corners)
   cv::Mat           img_;         // image
+  ImgPyr            pyr_;         // image pyramid
 
   Frame() =default;
  ~Frame() =default;
   Frame(Frame &frame);
   Frame(long unsigned int idx,
-        const cv::Mat &img, AbstractCamera *cam,
+        cv::Mat &img, AbstractCamera *cam,
         double ts);
 
   /// Camera instance
@@ -31,6 +33,9 @@ public:
 
   /// Return the pose of the frame in the (w)orld coordinate frame.
   inline Vector3d pos() const { return -T_f_w_.rotation_matrix().transpose()*T_f_w_.translation(); }
+
+  /// create image pyramid
+  void create_img_pyramid(cv::Mat& img);
 
   /// Set poses
   void set_pose(Sophus::SE3& T_w_f);

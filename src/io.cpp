@@ -8,6 +8,14 @@
 
 namespace io {
 
+bool IO::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) const {
+  ts = times_[idx];
+  img = cv::imread(img_paths_[idx], 0);
+  assert(!img.empty());
+  T_w_f = poses_[idx];
+  return true;
+}
+
 Kitti::Kitti(std::string base) {
   const auto times_file = base + "/times.txt";
   const auto img_paths = base + "/image_0";
@@ -99,15 +107,95 @@ Kitti::Kitti(std::string base) {
   }
 }
 
-bool Kitti::read_set(size_t idx, double &ts, cv::Mat &img, Sophus::SE3 &T_w_f) const {
-  ts = times_[idx];
-  img = cv::imread(img_paths_[idx], 0);
-  T_w_f = poses_[idx];
-  return true;
+RPGSyntheticForward::RPGSyntheticForward(std::string base) {
+  std::ifstream fimages;
+  fimages.open(base+"/info/images.txt");
+  while(!fimages.eof()) {
+    double ts;
+    std::string img_path, s;
+    std::getline(fimages, s);
+    if (s.empty())
+      continue;
+    std::istringstream ss(s);
+    ss >> ts;
+    ss >> ts;
+    ss >> img_path;
+    ss >> img_path;
+    times_.push_back(ts);
+    img_paths_.push_back(base+"/"+img_path);
+  }
+  std::ifstream fdepth;
+  fdepth.open(base+"/info/depthmaps.txt");
+  assert(fdepth.is_open());
+  gt_depth_paths_.reserve(times_.size());
+  while(!fdepth.eof()) {
+    double ts;
+    std::string s, path;
+    std::getline(fdepth, s);
+    if (s.empty())
+      continue;
+    std::stringstream ss;
+    ss << s;
+    ss >> path;
+    ss >> path;
+    gt_depth_paths_.emplace_back(base+"/"+path);
+  }
+  poses_.reserve(times_.size());
+  std::ifstream fgt;
+  fgt.open(base+"/info/groundtruth.txt");
+  for (size_t ii=0; ii<times_.size(); ++ii) {
+    double pose[7];
+    std::string s;
+    std::getline(fgt, s);
+    std::istringstream ss(s);
+    size_t num=0;
+    if (s.empty())
+      continue;
+    double t;
+    ss >> t;
+    while (num < 7) {
+      ss >> pose[num];
+      ++num; 
+    }
+    Eigen::Matrix3d R_w_f; Eigen::Vector3d t_w_f;
+    for (size_t i=0;i<3;++i)
+      t_w_f(i) = pose[i];
+    df::utils::quaternion_to_rotation_matrix(pose+3, R_w_f);
+    Sophus::SE3 T_w_f(R_w_f, t_w_f);
+    poses_.emplace_back(T_w_f);
+  }
 }
 
-bool Kitti::read_vel(size_t idx, df::PointCloud *cloud) {
-  df::utils::load_kitti_velodyne_scan(vel_paths_[idx], cloud);
+RPGSyntheticDownward::RPGSyntheticDownward(std::string base) {
+  std::ifstream fimages(base+"/trajectory.txt");
+  assert(fimages.is_open());
+  while(!fimages.eof()) {
+    double ts;
+    std::string img_path, s;
+    std::getline(fimages, s);
+    if (s.empty())
+      continue;
+    std::istringstream ss(s);
+    ss >> ts;
+    ss >> img_path;
+
+    double pose[7];
+    size_t num=0;
+    while (num < 7) {
+      ss >> pose[num];
+      ++num; 
+    }
+    Eigen::Matrix3d R_w_f; Eigen::Vector3d t_w_f;
+    for (size_t i=0;i<3;++i)
+      t_w_f(i) = pose[i];
+    df::utils::quaternion_to_rotation_matrix(pose+3, R_w_f);
+    Sophus::SE3 T_w_f(R_w_f, t_w_f);
+ 
+    times_.push_back(ts);
+    img_paths_.push_back(base+"/img/"+img_path+"_0.png");
+    gt_depth_paths_.push_back(base+"/depth/"+img_path+"_0.depth");
+    poses_.emplace_back(T_w_f);
+  }
 }
 
 } // namespace io

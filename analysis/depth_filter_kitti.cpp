@@ -25,41 +25,6 @@ static const int upper_thresh = 40;
 static const int lower_thresh = 20;
 static const float well_textured_thresh = 1e-2;
 
-bool valid(Vector2d &pt) {
-  if (pt.x() < 0 || pt.y() < 0 ||
-      pt.x() > IMG_W || pt.y() > IMG_H)
-    return false;
-  return true;
-}
-
-void draw_line(Vector3d &line, cv::Mat &img) {
-  Vector3d th(0, 1, 0);
-  Vector3d lv(1, 0, 0);
-  Vector3d bh(0, 1, -img.rows);
-  Vector3d rv(1, 0, -img.cols);
-
-  auto pt_th = utils::project2d(line.cross(th));
-  auto pt_lv = utils::project2d(line.cross(lv));
-  auto pt_bh = utils::project2d(line.cross(bh));
-  auto pt_rv = utils::project2d(line.cross(rv));
- 
-  vector<Vector2d> pts;
-
-  if (valid(pt_th))
-    pts.push_back(pt_th);
-  if (valid(pt_lv))
-    pts.push_back(pt_lv);
-  if (valid(pt_bh))
-    pts.push_back(pt_bh);
-  if (valid(pt_rv))
-    pts.push_back(pt_rv);
-  
-  if (pts.size() == 2)
-    cv::line(img,
-        cv::Point2f(pts.front().x(), pts.front().y()),
-        cv::Point2f(pts.back().x(), pts.back().y()),
-        cv::Scalar(255, 0, 0), 1, CV_AA);
-}
 
 class DepthFilterTest {
 public:
@@ -186,8 +151,9 @@ void DepthFilterTest::run() {
     if (i == ref_idx_) {
       frame_ref_.reset(new Frame(i, frame_img, camera_, frame_ts));
       frame_ref_->set_pose(T_w_f);
-      depth_filter_ = new DepthFilter();
+      depth_filter_ = new DepthFilter(camera_);
       depth_filter_->add_keyframe(frame_ref_);
+      depth_filter_->options_.verbose_ = true;
       list<Seed>& seeds = depth_filter_->get_mutable_seeds();
       for (size_t i=0; i<cloud_order_.size(); ++i) {
         std::tuple<Vector3d, cv::Point2f>& kpt = lidar_kps_[cloud_order_[i]];

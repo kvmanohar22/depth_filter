@@ -52,8 +52,17 @@ target_link_libraries(test_analysis depth_filter)
 add_executable(test_utils test/test_utils.cpp)
 target_link_libraries(test_utils depth_filter)
 
+add_executable(test_fast test/test_fast.cpp)
+target_link_libraries(test_fast depth_filter)
+
 add_executable(test_velo test/test_velodyne_scan_kitti.cpp)
 target_link_libraries(test_velo depth_filter)
 
 add_executable(test_df_kitti analysis/depth_filter_kitti.cpp)
 target_link_libraries(test_df_kitti depth_filter)
+
+add_executable(depth_filter_synthetic_downward analysis/depth_filter_synthetic_downward.cpp)
+target_link_libraries(depth_filter_synthetic_downward depth_filter)
+
+add_executable(depth_filter_synthetic_forward analysis/depth_filter_synthetic_forward.cpp)
+target_link_libraries(depth_filter_synthetic_forward depth_filter)

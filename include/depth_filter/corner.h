@@ -15,6 +15,12 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   Corner() =default;
+  Corner(Vector2d& px)
+    : px_(px),
+      xyz_(nullptr),
+      frame_(nullptr)
+  {}
+
   Corner(Vector2d& px, FramePtr& frame)
     : px_(px),
       f_(frame->cam_->cam2world(px)),

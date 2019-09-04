@@ -13,10 +13,15 @@ inline Vector2d project2d(const Vector3d &v) {
   return v.head<2>()/v.z();
 }
 
+inline Vector3d unproject2d(const Vector2d &v) {
+  return Vector3d(v.x(), v.y(), 1.0);
+}
+
 inline void load_blender_depth(
     const std::string file_name,
     const df::AbstractCamera& cam,
-    cv::Mat& img) {
+    cv::Mat& img)
+{
   std::ifstream file_stream(file_name.c_str());
   assert(file_stream.is_open());
   img = cv::Mat(cam.height(), cam.width(), CV_32FC1);
@@ -32,7 +37,6 @@ inline void load_blender_depth(
     }
   }
 }
-
 
 // Ref: https://github.com/kashif/ceres-solver/blob/master/include/ceres/rotation.h
 // q[0] -> i^th component 
