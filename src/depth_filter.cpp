@@ -45,10 +45,7 @@ list<Seed>& DepthFilter::get_mutable_seeds() {
 }
 
 void DepthFilter::update_seeds_loop() {
-  /// main outer loop for updating seeds
-  while (true) {
 
-  }
 }
 
 void DepthFilter::update_seeds(FramePtr& frame) {
@@ -60,6 +57,7 @@ void DepthFilter::update_seeds(FramePtr& frame) {
 
     // point is behind the camera
     if (xyz_f.z() < 0) {
+      std::cout << "here1" << std::endl;
       ++itr;
       continue;
     }
@@ -71,7 +69,7 @@ void DepthFilter::update_seeds(FramePtr& frame) {
     }
 
     float d_min = max(itr->mu_ - 1*sqrt(itr->sigma2_), 0.000001f);
-    float d_max = min(itr->mu_ + 1*sqrt(itr->sigma2_), 100000.0f);
+    float d_max = itr->mu_ + 1*sqrt(itr->sigma2_);
     float d_new;
     if (!find_match_along_epipolar(itr->corner_->frame_, frame, itr->corner_, itr->mu_, d_min, d_max, d_new)) {
       itr->b_++;
@@ -84,7 +82,7 @@ void DepthFilter::update_seeds(FramePtr& frame) {
 
     update_seed(&*itr, d_new, tau*tau);
     
-    if (itr->sigma2_ < options_.sigma2_convergence_thresh_) {
+    if (itr->sigma2_ < itr->z_range_ / options_.sigma2_convergence_thresh_) {
       assert(itr->corner_->xyz_ == nullptr);
       Vector3d xyz_world(itr->corner_->frame_->T_f_w_.inverse() * (itr->corner_->f_ * itr->mu_));
       Point* point = new Point(xyz_world, itr->corner_);
@@ -151,7 +149,7 @@ bool DepthFilter::find_match_along_epipolar(
   Sophus::SE3 T_ref_cur = ref_frame->T_f_w_ * cur_frame->T_f_w_.inverse();
   Vector2d pt_min = utils::project2d(T_ref_cur.inverse() * (corner->f_ * d_min)); 
   Vector2d pt_max = utils::project2d(T_ref_cur.inverse() * (corner->f_ * d_max)); 
-  Vector2d line_dir = pt_min - pt_max;
+  Vector2d line_dir = pt_max - pt_min;
 
   Vector2d px_min(cur_frame->cam_->world2cam(pt_min));
   Vector2d px_max(cur_frame->cam_->world2cam(pt_max));
@@ -171,7 +169,7 @@ bool DepthFilter::find_match_along_epipolar(
   int zmssd_best = PatchScore::threshold();
 
   // go along the epipolar line segment and find the patch with min ZMSSD
-  Vector2d uv = pt_max-step;
+  Vector2d uv = pt_min+step;
   Vector2d uv_best;
   Vector2i last_px(0, 0);
   for (size_t i=0; i<n_steps; ++i, uv+=step) {
@@ -205,12 +203,10 @@ bool DepthFilter::find_match_along_epipolar(
       cv::cvtColor(img_cur, img_cur, CV_GRAY2BGR);
       auto uv_best_px = ref_frame->cam_->world2cam(uv_best);
       auto uv_cur_px =  ref_frame->cam_->world2cam(uv);
+      cv::circle(img_ref, cv::Point2f(px.x(), px.y()), 2, cv::Scalar(255, 0, 0), 2);
+      cv::circle(img_cur, cv::Point2f(uv_best_px.x(), uv_best_px.y()), 2, cv::Scalar(0, 0, 255), 2);
+      cv::circle(img_cur, cv::Point2f(uv_cur_px.x(), uv_cur_px.y()), 2, cv::Scalar(255, 0, 0), 2);
       cv::line(img_cur, cv::Point2f(px_min.x(), px_min.y()), cv::Point2f(px_max.x(), px_max.y()), cv::Scalar(255, 0, 0), 1, CV_AA);
-      cv::rectangle(img_ref, cv::Point2f(px.x()-2, px.y()-2), cv::Point2f(px.x()+2, px.y()+2), cv::Scalar(255, 0, 0), 1, CV_AA);
-      // cv::circle(img_cur, cv::Point2f(px_min.x(), px_min.y()), 2, cv::Scalar(0, 255, 0), 2);
-      // cv::circle(img_cur, cv::Point2f(px_max.x(), px_max.y()), 2, cv::Scalar(0, 0, 255), 2);
-      cv::circle(img_cur, cv::Point2f(uv_best_px.x(), uv_best_px.y()), 1, cv::Scalar(0, 0, 255), 1);
-      // cv::circle(img_cur, cv::Point2f(uv_cur_px.x(), uv_cur_px.y()), 2, cv::Scalar(255, 255, 0), 2);
       cv::imshow("ref image", img_ref);
       cv::imshow("cur image", img_cur);
       cv::waitKey(0);

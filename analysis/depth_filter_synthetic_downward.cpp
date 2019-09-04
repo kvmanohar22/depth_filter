@@ -80,32 +80,31 @@ void DepthFilterTest::run() {
       frame_ref_->set_pose(T_w_f);
       depth_filter_ = new DepthFilter(camera_);
       depth_filter_->options_.verbose_ = true;
-      depth_filter_->options_.seeds_init_type_ = SeedsInitType::FAST_DETECTOR;
-      depth_filter_->add_keyframe(frame_ref_);
-      // load_ref();
-      // list<Seed>& seeds = depth_filter_->get_mutable_seeds();
-      // for (size_t i=0; i<gt_kps_.size(); ++i) {
-      //   std::tuple<float, cv::Point2f>& kpt = gt_kps_[i];
-      //   auto pt = std::get<1>(kpt);
-      //   Vector2d px(pt.x, pt.y);
-      //   Corner* new_corner = new Corner(px, frame_ref_);
-      //   seeds.emplace_back(Seed(depth_mean, depth_min, depth_max, new_corner));
-      // }
-      // DLOG(INFO) << "Number of initialized seeds = " << depth_filter_->n_seeds();
+      depth_filter_->options_.seeds_init_type_ = SeedsInitType::OUTSOURCE;
+      depth_filter_->add_keyframe(frame_ref_, depth_min, depth_mean, depth_max);
 
       auto img = frame_img.clone();
       cv::cvtColor(img, img, CV_GRAY2BGR);
-      if (depth_filter_->options_.seeds_init_type_ == SeedsInitType::FAST_DETECTOR) {
-        auto seeds = depth_filter_->get_seeds();
-        std::for_each(seeds.begin(), seeds.end(), [&](Seed &seed) {
-          Vector2d px = seed.corner_->px_;
-          cv::circle(img, cv::Point2f(px.x(), px.y()), 1, cv::Scalar(0, 255, 0), 1);
-        });
-      } else {
-        std::for_each(gt_kps_.begin(), gt_kps_.end(), [&](tuple<float, cv::Point2f> &pt) {
-          cv::circle(img, std::get<1>(pt), 1, cv::Scalar(0, 255, 0), 1);
-        });
+      if (depth_filter_->options_.seeds_init_type_ == SeedsInitType::OUTSOURCE) {
+        // Load reference image depth and (u,v)
+        load_ref();
+
+        // Initialize the seeds
+        list<Seed>& seeds = depth_filter_->get_mutable_seeds();
+        for (size_t i=0; i<gt_kps_.size(); ++i) {
+          std::tuple<float, cv::Point2f>& kpt = gt_kps_[i];
+          auto pt = std::get<1>(kpt);
+          Vector2d px(pt.x, pt.y);
+          Corner* new_corner = new Corner(px, frame_ref_);
+          seeds.emplace_back(Seed(depth_mean, depth_min, depth_max, new_corner));
+        }
       }
+      auto seeds = depth_filter_->get_seeds();
+      std::for_each(seeds.begin(), seeds.end(), [&](Seed &seed) {
+        Vector2d px = seed.corner_->px_;
+        cv::circle(img, cv::Point2f(px.x(), px.y()), 1, cv::Scalar(0, 255, 0), 1);
+      });
+      DLOG(INFO) << "Number of initialized seeds = " << depth_filter_->n_seeds();
       cv::imshow("img", img);
       cv::waitKey(0);
       continue;
