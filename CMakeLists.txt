@@ -9,6 +9,7 @@ find_package(Eigen3 REQUIRED)
 find_package(fast REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(vikit_common REQUIRED)
+find_package(Pangolin REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread system filesystem)
 add_definitions(-DDEBUG_YES)
 
@@ -20,6 +21,7 @@ include_directories(
   ${fast_INCLUDE_DIRS}
   ${Sophus_INCLUDE_DIRS}
   ${vikit_common_INCLUDE_DIRS}
+  ${Pangolin_INCLUDE_DIRS}
 )
 
 list(APPEND LIBS
@@ -27,6 +29,7 @@ list(APPEND LIBS
   ${Boost_LIBRARIES}
   ${fast_LIBRARIES}
   ${Sophus_LIBRARIES}
+  ${Pangolin_LIBRARIES}
   glog
 )
 
@@ -36,6 +39,7 @@ list(APPEND SRCS
   src/pinhole.cpp
   src/frame.cpp
   src/utils.cpp
+  src/viewer.cpp
 )
 add_library(depth_filter SHARED ${SRCS} src/frame.cpp include/depth_filter/utils.h)
 target_link_libraries(depth_filter ${LIBS})
@@ -45,6 +49,9 @@ target_link_libraries(test_pipeline depth_filter)
 
 add_executable(analyze_kitti analysis/kitti.cpp)
 target_link_libraries(analyze_kitti depth_filter)
+
+add_executable(viz_cloud analysis/viz_point_cloud.cpp)
+target_link_libraries(viz_cloud depth_filter)
 
 add_executable(test_analysis test/test_analysis.cpp)
 target_link_libraries(test_analysis depth_filter)
