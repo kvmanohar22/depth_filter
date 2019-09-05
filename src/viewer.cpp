@@ -22,8 +22,8 @@ void Viewer3D::setup(
   vector<Matrix4d>& cameras)
 {
   window_name = "SLAM: 3D";
-  H = 768;
-  W = 1024;
+  H = 900;
+  W = 1200;
   finish_render_ = false;
 
   pangolin::CreateWindowAndBind(window_name, W, H);
@@ -81,11 +81,17 @@ void Viewer3D::update(
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   s_cam = pangolin::OpenGlRenderState(
-    pangolin::ProjectionMatrix(W, H, 420, 420, 512, 389, 0.1, 1000),
-    pangolin::ModelViewLookAt(-245,  381, -6, // camera location in world
+    pangolin::ProjectionMatrix(W, H, 420, 420, W/2, H/2, 0.1, 1000),
+    pangolin::ModelViewLookAt(0, 0, -10, // camera location in world
                               0,  0,  0, // where should the camera look at?
                               0, -1,  0) // camera y-axis
     );
+  // s_cam = pangolin::OpenGlRenderState(
+  //   pangolin::ProjectionMatrix(W, H, 420, 420, 512, 389, 0.1, 1000),
+  //   pangolin::ModelViewLookAt(0, -10, 1, // camera location in world
+  //                             0,  0,  0, // where should the camera look at?
+  //                             0, -1,  0) // camera y-axis
+  //   );
 
   pangolin::Handler3D handler(s_cam);
   d_cam = pangolin::CreateDisplay()
@@ -97,6 +103,16 @@ void Viewer3D::update(
   green.x = 0.0f; green.y = 1.0f; green.z = 0.0f;
   blue.x  = 0.0f; blue.y  = 0.0f; blue.z  = 1.0f;
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+  const size_t num_points = points.size();
+  float points_gl[3*num_points];
+  for (size_t i=0; i<points.size(); ++i) {
+    Vector3f point = points[i].cast<float>();
+    for(size_t j=0;j<3;++j)
+      *(points_gl+i*3+j) = point[j];
+  }
+  pangolin::GlBuffer glxyz(pangolin::GlArrayBuffer, num_points, GL_FLOAT, 3, GL_STATIC_DRAW);
+  glxyz.Upload(points_gl, 3*sizeof(float)*num_points);
 
   while(!pangolin::ShouldQuit() && !finish_render_) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -112,15 +128,18 @@ void Viewer3D::update(
     }
 
     // Render points
-    glPointSize(2.0f);
-    glBegin(GL_POINTS);
-    for (size_t i=0; i<points.size(); ++i) {
-      Vector3f point = points[i].cast<float>();
-      Vector3f color = colors[i].cast<float>();
-      color /= 255.0;
-      glColor3f(color(2), color(1), color(0)); // color is in BGR
-      glVertex3f(point(0), point(1), point(2));
-    }
+    glPointSize(1.0f);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    pangolin::RenderVbo(glxyz);
+
+    // glBegin(GL_POINTS);
+    // for (size_t i=0; i<points.size(); ++i) {
+    //   Vector3f point = points[i].cast<float>();
+    //   Vector3f color = colors[i].cast<float>();
+    //   color /= 255.0;
+    //   glColor3f(color(2), color(1), color(0)); // color is in BGR
+    //   glVertex3f(point(0), point(1), point(2));
+    // }
     glEnd();
     pangolin::FinishFrame();
   }

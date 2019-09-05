@@ -1,7 +1,7 @@
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/utils.h"
-#include "depth_filter/cameras/abstract.hpp"
-#include "depth_filter/cameras/pinhole.hpp"
+#include "depth_filter/cameras/abstract.h"
+#include "depth_filter/cameras/pinhole.h"
 #include "depth_filter/io.h"
 #include "depth_filter/depth_filter.h"
 
