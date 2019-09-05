@@ -1,7 +1,7 @@
 #ifndef _DF_POINT_H_
 #define _DF_POINT_H_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 
 namespace df {
 

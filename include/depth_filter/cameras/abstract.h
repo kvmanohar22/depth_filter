@@ -1,7 +1,7 @@
 #ifndef _DEPTH_FILTER_ABSTRACT_CAMERA_HPP_
 #define _DEPTH_FILTER_ABSTRACT_CAMERA_HPP_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 
 namespace df {
 

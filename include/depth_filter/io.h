@@ -4,10 +4,10 @@
 #include <vector>
 #include <string>
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/cloud.h"
 #include "depth_filter/utils.h"
-#include "depth_filter/cameras/abstract.hpp"
+#include "depth_filter/cameras/abstract.h"
 #include <opencv2/opencv.hpp>
 
 namespace io {

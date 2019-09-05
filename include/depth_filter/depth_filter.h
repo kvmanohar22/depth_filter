@@ -1,8 +1,8 @@
 #ifndef _DEPTH_FILTER_H_
 #define _DEPTH_FILTER_H_
 
-#include "depth_filter/global.hpp"
-#include "depth_filter/frame.hpp"
+#include "depth_filter/global.h"
+#include "depth_filter/frame.h"
 #include "depth_filter/seed.h"
 
 #include "vikit/patch_score.h"

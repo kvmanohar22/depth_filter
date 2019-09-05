@@ -1,4 +1,4 @@
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/io.h"
 #include "depth_filter/utils.h"
 

@@ -1,8 +1,8 @@
 #ifndef _DEPTH_FILTER_FEATURES_HPP_
 #define _DEPTH_FILTER_FEATURES_HPP_
 
-#include "depth_filter/global.hpp"
-#include "depth_filter/cameras/abstract.hpp"
+#include "depth_filter/global.h"
+#include "depth_filter/cameras/abstract.h"
 
 namespace df {
 

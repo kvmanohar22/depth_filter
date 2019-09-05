@@ -1,7 +1,7 @@
 #include "depth_filter/depth_filter.h"
 #include "depth_filter/utils.h"
 #include "depth_filter/feature_detector.h"
-#include "depth_filter/cameras/pinhole.hpp"
+#include "depth_filter/cameras/pinhole.h"
 
 #include <random>
 #include <boost/math/distributions/normal.hpp>

@@ -1,9 +1,9 @@
 #ifndef DEPTH_ESTIMATION_UTILS_H
 #define DEPTH_ESTIMATION_UTILS_H
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/cloud.h"
-#include "depth_filter/cameras/abstract.hpp"
+#include "depth_filter/cameras/abstract.h"
 
 namespace df {
 

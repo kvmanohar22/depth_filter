@@ -16,7 +16,6 @@ Viewer3D::~Viewer3D() {
   LOG(INFO) << "Render loop thread stop invoked";
 }
 
-
 void Viewer3D::setup(
   vector<Vector3d>& points,
   vector<Vector3d>& colors,

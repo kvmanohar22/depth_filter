@@ -1,7 +1,7 @@
 #ifndef _DF_FEATURE_H_
 #define _DF_FEATURE_H_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/corner.h"
 
 namespace df {

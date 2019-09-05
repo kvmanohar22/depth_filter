@@ -1,9 +1,9 @@
 #ifndef _DF_CORNER_H_
 #define _DF_CORNER_H_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/point.h"
-#include "depth_filter/frame.hpp"
+#include "depth_filter/frame.h"
 
 namespace df {
 

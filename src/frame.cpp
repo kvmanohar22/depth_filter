@@ -1,4 +1,4 @@
-#include "depth_filter/frame.hpp"
+#include "depth_filter/frame.h"
 
 namespace df {
 

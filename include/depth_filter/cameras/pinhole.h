@@ -1,7 +1,7 @@
 #ifndef _DEPTH_FILTER_PINHOLE_CAMERA_HPP_
 #define _DEPTH_FILTER_PINHOLE_CAMERA_HPP_
 
-#include "depth_filter/cameras/abstract.hpp"
+#include "depth_filter/cameras/abstract.h"
 
 namespace df {
 

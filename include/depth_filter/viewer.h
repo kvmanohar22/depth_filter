@@ -1,7 +1,7 @@
 #ifndef _HAWK_VIEWER_HPP_
 #define _HAWK_VIEWER_HPP_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include <thread>
 #include <pangolin/pangolin.h>
 

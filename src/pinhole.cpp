@@ -2,7 +2,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "depth_filter/utils.h"
-#include "depth_filter/cameras/pinhole.hpp"
+#include "depth_filter/cameras/pinhole.h"
 
 namespace df {
 

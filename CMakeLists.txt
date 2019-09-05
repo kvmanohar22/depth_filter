@@ -62,6 +62,9 @@ target_link_libraries(test_utils depth_filter)
 add_executable(test_fast test/test_fast.cpp)
 target_link_libraries(test_fast depth_filter)
 
+add_executable(test_similarity test/test_similarity.cpp)
+target_link_libraries(test_similarity depth_filter)
+
 add_executable(test_velo test/test_velodyne_scan_kitti.cpp)
 target_link_libraries(test_velo depth_filter)
 

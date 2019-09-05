@@ -1,7 +1,7 @@
 #ifndef _DEPTH_FILTER_CLOUD_H_
 #define _DEPTH_FILTER_CLOUD_H_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 
 namespace df {
 

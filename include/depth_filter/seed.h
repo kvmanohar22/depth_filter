@@ -1,7 +1,7 @@
 #ifndef _DEPTH_FILTER_SEED_H_
 #define _DEPTH_FILTER_SEED_H_
 
-#include "depth_filter/global.hpp"
+#include "depth_filter/global.h"
 #include "depth_filter/corner.h"
 #include <opencv2/opencv.hpp>
 
