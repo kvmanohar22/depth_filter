@@ -13,7 +13,8 @@ public:
 
   Point() =default;
   Point(Vector3d& xyz, Corner* corner)
-    : xyz_(xyz) {
+    : xyz_(xyz)
+  {
     obs_.push_back(corner);
   }
 
@@ -22,6 +23,8 @@ public:
 
   // Frame which observers this point
   inline Corner* first_obs() const { return obs_.front(); }
+
+  inline Vector3d xyz() const { return xyz_; }
 
 private:
   Vector3d xyz_;
