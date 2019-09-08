@@ -14,7 +14,7 @@ DepthFilter::DepthFilter(AbstractCamera *cam) {
   LOG(INFO) << "DepthFilter initialized...";
 
   float focal_len = dynamic_cast<df::Pinhole*>(cam)->fx();
-  one_px_angle_ = 2.0 * atan(1.0f / (2 * focal_len));
+  one_px_angle_ = 2.0 * atan(1.0f / (2.0 * focal_len));
 }
 
 void DepthFilter::add_keyframe(FramePtr& frame, 
@@ -33,7 +33,7 @@ void DepthFilter::initialize_seeds(
   float depth_min, float depth_mean, float depth_max)
 {
   list<Corner*> new_corners;
-  FastDetector::detect(frame_ref_->img_, new_corners);
+  FastDetector::detect(frame_ref_, new_corners);
   std::for_each(new_corners.begin(), new_corners.end(), [&](Corner* crn) {
     seeds_.emplace_back(Seed(depth_mean, depth_min, depth_max, crn));
   });
@@ -78,7 +78,7 @@ void DepthFilter::update_seeds(FramePtr& frame) {
     }
 
     Vector3d rp = itr->corner_->f_ * d_new;
-    float tau = compute_tau(rp, T_cur_ref.inverse().translation(), itr->corner_->f_);
+    float tau = compute_tau(rp, T_cur_ref.inverse().translation(), itr->corner_->f_, one_px_angle_);
 
     update_seed(&*itr, d_new, tau*tau);
     
@@ -129,12 +129,12 @@ void DepthFilter::update_seed(Seed* seed, float d_mu, float d_tau2) {
 }
 
 // Reference: https://kvmanohar22.github.io/depth-estimation/#bayesian_variance
-float DepthFilter::compute_tau(Vector3d rp, Vector3d t, Vector3d f) {
+float DepthFilter::compute_tau(Vector3d rp, Vector3d t, Vector3d f, float one_px_angle) {
   Vector3d a = rp - t;
   double t_norm = t.norm();
   double alpha = acos(f.dot(t) / t_norm);
-  double beta = acos(-t.dot(a) / (t_norm * a.norm()));
-  double beta_plus = beta + one_px_angle_;
+  double beta = acos(a.dot(-t) / (t_norm * a.norm()));
+  double beta_plus = beta + one_px_angle;
   double gamma = df::PI - alpha - beta_plus;
   double rp_plus_norm = t_norm * (sin(beta_plus) / sin(gamma));
   double tau = (rp_plus_norm - rp.norm());
@@ -164,7 +164,7 @@ bool DepthFilter::find_match_along_epipolar(
 
   // pre-compute the reference patch
   uint8_t ref_patch[options_.patch_size_*options_.patch_size_] __attribute__ ((aligned(16)));
-  create_ref_patch(ref_patch, corner->px_, frame_ref_->img_);
+  create_ref_patch(ref_patch, corner->px_, frame_ref_->img_, options_.half_patch_size_);
   PatchScore patch_score(ref_patch);
   int zmssd_best = PatchScore::threshold();
 
@@ -222,12 +222,18 @@ bool DepthFilter::find_match_along_epipolar(
   return false;
 }
 
-void DepthFilter::create_ref_patch(uint8_t* patch, Vector2d& px_ref, cv::Mat& img_ref) {
+void DepthFilter::create_ref_patch(
+  uint8_t* patch,
+  Vector2d& px_ref,
+  cv::Mat& img_ref,
+  size_t half_patch_size)
+{
   uint8_t* patch_ptr = patch;
+  const size_t patch_size = 2*half_patch_size;
   const Vector2f px_ref_f = px_ref.cast<float>();
-  for (int y=0; y<options_.patch_size_; ++y) {
-    for (int x=0; x<options_.patch_size_; ++x, ++patch_ptr) {
-      Vector2f px_patch(x-options_.half_patch_size_, y-options_.half_patch_size_);
+  for (int y=0; y<patch_size; ++y) {
+    for (int x=0; x<patch_size; ++x, ++patch_ptr) {
+      Vector2f px_patch(x-half_patch_size, y-half_patch_size);
       const Vector2f px(px_patch + px_ref_f);
       if (px[0]<0 || px[1]<0 || px[0]>=img_ref.cols-1 || px[1]>=img_ref.rows-1)
         *patch_ptr = 0;

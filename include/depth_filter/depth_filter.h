@@ -9,6 +9,7 @@
 #include "vikit/vision.h"
 
 #include <opencv2/opencv.hpp>
+#include <queue>
 
 namespace df {
 
@@ -24,7 +25,7 @@ class DepthFilter {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  DepthFilter(AbstractCamera *cam);
+  explicit DepthFilter(AbstractCamera *cam);
 
   // Add a new keyframe. New seeds are initialized from this
   void add_keyframe(FramePtr& frame, float depth_min=0.0f, float depth_mean=0.0f, float depth_max=0.0f);
@@ -58,11 +59,11 @@ public:
         Corner* corner, float d_current, float d_min, float d_max, float &d_new);
 
   // compute variance in triangulation
-  float compute_tau(Vector3d rp, Vector3d t, Vector3d f);
+  static float compute_tau(Vector3d rp, Vector3d t, Vector3d f, float one_px_angle);
 
-  void create_ref_patch(uint8_t* patch_ref, Vector2d &px_ref, cv::Mat &img);
+  static void create_ref_patch(uint8_t* patch_ref, Vector2d &px_ref, cv::Mat &img, size_t half_patch_size);
 
-  bool triangulate(const Sophus::SE3& T_search_ref, const Vector3d& f_ref,
+  static bool triangulate(const Sophus::SE3& T_search_ref, const Vector3d& f_ref,
     const Vector3d& f_cur, float& depth);
 
   struct Options {
