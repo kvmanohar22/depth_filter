@@ -6,7 +6,7 @@
 namespace utils {
 namespace math {
 
-Eigen::Matrix3f rotationX(float theta) {
+inline Eigen::Matrix3f rotationX(float theta) {
   theta *= df::PI / 180.0f;
   float c = cos(theta);
   float s = sin(theta);
@@ -17,7 +17,7 @@ Eigen::Matrix3f rotationX(float theta) {
   return R;
 }
 
-Eigen::Matrix3f rotationY(float theta)
+inline Eigen::Matrix3f rotationY(float theta)
 {
   theta *= df::PI / 180.0f;
   float c = cos(theta);
@@ -29,7 +29,7 @@ Eigen::Matrix3f rotationY(float theta)
   return R;
 }
 
-Eigen::Matrix3f rotationZ(float theta)
+inline Eigen::Matrix3f rotationZ(float theta)
 {
   theta *= df::PI / 180.0f;
   float c = cos(theta);

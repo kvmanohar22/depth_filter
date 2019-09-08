@@ -46,7 +46,7 @@ inline void load_blender_depth(
       file_stream >> depth;
       if (type == DepthType::OPTICAL_AXIS) {
         Eigen::Vector3d f(cam.cam2world(x,y));
-        depth = depth * f.z();
+        depth = depth / f.z();
       }
       *img_ptr = depth;
       if(file_stream.peek() == '\n' && x != cam.width()-1 && y != cam.height()-1)
