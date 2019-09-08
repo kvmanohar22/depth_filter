@@ -43,8 +43,8 @@ private:
 class RPGSyntheticForward : public IO {
 public:
   RPGSyntheticForward(std::string env);
-  inline bool read_gtdepth(size_t idx, df::AbstractCamera* camera, cv::Mat& depth_img_ref_) {
-    df::utils::load_blender_depth(gt_depth_paths_[idx], *camera, depth_img_ref_); 
+  inline bool read_gtdepth(size_t idx, df::AbstractCamera* camera, cv::Mat& depth_img_ref_, df::utils::DepthType type) {
+    df::utils::load_blender_depth(gt_depth_paths_[idx], *camera, depth_img_ref_, type);
     return true;
   }
   virtual ~RPGSyntheticForward() =default;
@@ -57,8 +57,8 @@ class RPGSyntheticDownward : public IO {
 public:
   RPGSyntheticDownward(std::string env);
   virtual ~RPGSyntheticDownward() =default;
-  inline bool read_gtdepth(size_t idx, df::AbstractCamera* camera, cv::Mat& depth_img_ref_) {
-    df::utils::load_blender_depth(gt_depth_paths_[idx], *camera, depth_img_ref_); 
+  inline bool read_gtdepth(size_t idx, df::AbstractCamera* camera, cv::Mat& depth_img_ref_, df::utils::DepthType type) {
+    df::utils::load_blender_depth(gt_depth_paths_[idx], *camera, depth_img_ref_, type);
     return true;
   }
 

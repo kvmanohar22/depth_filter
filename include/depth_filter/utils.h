@@ -6,8 +6,12 @@
 #include "depth_filter/cameras/abstract.h"
 
 namespace df {
-
 namespace utils {
+
+enum class DepthType {
+  OPTICAL_RAY,  // depth along the optical ray
+  OPTICAL_AXIS  // depth along the optical axis
+};
 
 inline Vector2d project2d(const Vector3d &v) {
   return v.head<2>()/v.z();
@@ -17,23 +21,36 @@ inline Vector3d unproject2d(const Vector2d &v) {
   return Vector3d(v.x(), v.y(), 1.0);
 }
 
+/*
+ * - This always returns depth along optical ray
+ * - To get the point in camera coordinates;
+ *    point_camera = f_bearing * depth_along_ray
+ *   where;
+ *    point_camera (Vector3d) -> point in camera coordinates
+ *    f_bearing (Vector3d)    -> unit vector from camera center
+ *    depth_along_ray (float) -> depth along the optical ray
+ */
 inline void load_blender_depth(
     const std::string file_name,
     const df::AbstractCamera& cam,
-    cv::Mat& img)
+    cv::Mat& img,
+    DepthType type=DepthType::OPTICAL_RAY)
 {
   std::ifstream file_stream(file_name.c_str());
   assert(file_stream.is_open());
   img = cv::Mat(cam.height(), cam.width(), CV_32FC1);
-  float * img_ptr = img.ptr<float>();
+  float* img_ptr = img.ptr<float>();
   float depth;
   for(int y=0; y<cam.height(); ++y) {
     for(int x=0; x<cam.width(); ++x, ++img_ptr) {
       file_stream >> depth;
-      Eigen::Vector2d uv(utils::project2d(cam.cam2world(x,y)));
-      *img_ptr = depth * sqrt(uv[0]*uv[0] + uv[1]*uv[1] + 1.0);
+      if (type == DepthType::OPTICAL_AXIS) {
+        Eigen::Vector3d f(cam.cam2world(x,y));
+        depth = depth * f.z();
+      }
+      *img_ptr = depth;
       if(file_stream.peek() == '\n' && x != cam.width()-1 && y != cam.height()-1)
-        printf("WARNING: did not read the full depthmap!\n");
+         std::cerr << "WARNING: did not read the full depthmap!\n";
     }
   }
 }
@@ -109,7 +126,6 @@ std::vector<T> linspace(T a, T b, size_t N) {
 }
 
 } // namespace utils
-
 } // namespace df
 
 #endif //DEPTH_ESTIMATION_UTILS_H

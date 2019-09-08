@@ -79,3 +79,6 @@ target_link_libraries(depth_filter_synthetic_forward depth_filter)
 
 add_executable(search_similarity_downward analysis/search_similarity_downward.cpp)
 target_link_libraries(search_similarity_downward depth_filter)
+
+add_executable(search_similarity_forward analysis/search_similarity_forward.cpp)
+target_link_libraries(search_similarity_forward depth_filter)

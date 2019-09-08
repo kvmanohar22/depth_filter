@@ -32,8 +32,8 @@ private:
 SearchSimilarityTest::SearchSimilarityTest(size_t ref_idx)
   : ref_idx_(ref_idx)
 {
-  camera_ = new df::Pinhole(752, 480, 315.5, 315.5, 376.0, 240.0);
-  io_ = new RPGSyntheticDownward(std::getenv("DATA_RPG_SYNTHETIC_DOWNWARD"));
+  camera_ = new df::Pinhole(640, 480, 329.115520046, 329.115520046, 320.0, 240.0);
+  io_ = new RPGSyntheticForward(std::getenv("DATA_RPG_SYNTHETIC_FORWARD"));
   DLOG(INFO) << "Read " << io_->n_imgs() << " files";
   load_ref();
 }
@@ -50,9 +50,9 @@ void SearchSimilarityTest::load_ref() {
   frame_ref_->set_pose(T_w_f);
 
   FastDetector::detect(frame_ref_, corners_);
-  // In this dataset, depth is stored along optical axis
-  dynamic_cast<io::RPGSyntheticDownward*>(io_)->read_gtdepth(
-    ref_idx_, camera_, depth_img_ref_, df::utils::DepthType::OPTICAL_AXIS);
+  // In this dataset, depth is stored along optical ray
+  dynamic_cast<io::RPGSyntheticForward*>(io_)->read_gtdepth(
+    ref_idx_, camera_, depth_img_ref_, df::utils::DepthType::OPTICAL_RAY);
 
   float* img_ptr = depth_img_ref_.ptr<float>();
   for(auto itr=corners_.begin(); itr!=corners_.end();) {
@@ -128,7 +128,7 @@ void SearchSimilarityTest::run_two_view(FramePtr& frame_cur, Corner* corner) {
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]); 
 
-  size_t ref_idx = 0;
+  size_t ref_idx = 10;
   SearchSimilarityTest tester(ref_idx);
   tester.run();
 }
