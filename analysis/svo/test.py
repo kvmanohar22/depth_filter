@@ -70,7 +70,6 @@ def test_all_converged(root):
         d_hat[idx] = t
         error[idx] = e
 
-
         if t > 40:
             print(f, uv, t, e)
             if VISUALIZE: 
@@ -84,5 +83,10 @@ def test_all_converged(root):
 
 
 if __name__ == '__main__':
-    test_all_error('./svo/svo_img_1/logs/')
+    # test_all_error('./svo/svo_img_600/logs/')
+    # test_all_error('./svo/svo_img_1/logs/')
+    # test_all_error('./svo/svo_downward/logs/')
+    # test_all_error('./svo/svo_downward/logs/')
+    # test_all_error('./svo/svo_img_1170/logs/')
+    test_all_error('./svo/svo_img_1350/logs/')
 

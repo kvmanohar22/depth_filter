@@ -80,18 +80,21 @@ void Viewer3D::update(
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  s_cam = pangolin::OpenGlRenderState(
-    pangolin::ProjectionMatrix(W, H, 420, 420, W/2, H/2, 0.1, 1000),
-    pangolin::ModelViewLookAt(0, 0, -10, // camera location in world
-                              0,  0,  0, // where should the camera look at?
-                              0, -1,  0) // camera y-axis
-    );
+  // // forward camera
   // s_cam = pangolin::OpenGlRenderState(
-  //   pangolin::ProjectionMatrix(W, H, 420, 420, 512, 389, 0.1, 1000),
-  //   pangolin::ModelViewLookAt(0, -10, 1, // camera location in world
+  //   pangolin::ProjectionMatrix(W, H, 420, 420, W/2, H/2, 0.1, 1000),
+  //   pangolin::ModelViewLookAt(0, 0, -10, // camera location in world
   //                             0,  0,  0, // where should the camera look at?
   //                             0, -1,  0) // camera y-axis
   //   );
+
+  // downward camera
+  s_cam = pangolin::OpenGlRenderState(
+    pangolin::ProjectionMatrix(W, H, 420, 420, 512, 389, 0.1, 1000),
+    pangolin::ModelViewLookAt(0, -10, 1, // camera location in world
+                              0,  0,  0, // where should the camera look at?
+                              0, -1,  0) // camera y-axis
+    );
 
   pangolin::Handler3D handler(s_cam);
   d_cam = pangolin::CreateDisplay()
