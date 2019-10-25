@@ -44,7 +44,8 @@ DepthFilterTest::DepthFilterTest(size_t ref_idx)
 }
 
 void DepthFilterTest::load_ref() {
-  dynamic_cast<io::RPGSyntheticDownward*>(io_)->read_gtdepth(ref_idx_, camera_, depth_img_ref_);
+  dynamic_cast<io::RPGSyntheticDownward*>(io_)->read_gtdepth(
+    ref_idx_, camera_, depth_img_ref_, df::utils::DepthType::OPTICAL_AXIS);
 
   float* img_ptr = depth_img_ref_.ptr<float>();
   float depth;

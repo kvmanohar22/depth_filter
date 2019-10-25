@@ -33,11 +33,12 @@ private:
   list<Corner*>       corners_;
   string              logdir_root_;
   ::utils::similarity::ZMNCC<uint8_t, half_patch_size>* zmncc_;
-  uint8_t            ref_patch_[patch_size*patch_size] __attribute__ ((aligned(16)));
+  uint8_t             ref_patch_[patch_size*patch_size] __attribute__ ((aligned(16)));
+  bool                verbose_;
 };
 
 SearchSimilarityTest::SearchSimilarityTest(size_t ref_idx, string logdir)
-  : ref_idx_(ref_idx), logdir_root_(logdir)
+  : ref_idx_(ref_idx), logdir_root_(logdir), verbose_(true)
 {
   camera_ = new df::Pinhole(752, 480, 315.5, 315.5, 376.0, 240.0);
   io_ = new io::RPGSyntheticDownward(std::getenv("DATA_RPG_SYNTHETIC_DOWNWARD"));
@@ -134,8 +135,8 @@ void SearchSimilarityTest::run_two_view(FramePtr& frame_cur, Corner* corner, siz
   float tau = fabs(DepthFilter::compute_tau(rp, t, f_unit, one_px_angle));
 
   float depth_along_ray = rp.z()/f_unit.z();
-  float d_min = depth_along_ray - 10*tau;
-  float d_max = depth_along_ray + 10*tau;
+  float d_min = depth_along_ray - 30*tau;
+  float d_max = depth_along_ray + 30*tau;
 
   // points on the unit sphere
   Vector2d pt_min = df::utils::project2d(T_cur_ref*(corner->f_*d_min));
@@ -193,6 +194,21 @@ void SearchSimilarityTest::run_two_view(FramePtr& frame_cur, Corner* corner, siz
       ofile << depth_cur << " " << similarity << std::endl;
     else
       ofile << -1 << " " << similarity << " " << std::endl;
+
+    // visualize
+#ifdef DEBUG_YES
+  imgr = frame_ref_->img_.clone();
+  imgc = frame_cur->img_.clone();
+  cv::cvtColor(imgr, imgr, CV_GRAY2BGR);
+  cv::cvtColor(imgc, imgc, CV_GRAY2BGR);
+  cv::circle(imgr, cv::Point2f(px_ref.x(), px_ref.y()), 1, cv::Scalar(255, 0, 0), 1); 
+  cv::circle(imgc, cv::Point2f(uv_best.x(), uv_best.y()), 1, cv::Scalar(0, 0, 255), 1); 
+  cv::circle(imgc, cv::Point2f(uv_cur.cast<float>().x(), uv_cur.cast<float>().y()), 1, cv::Scalar(0, 0, 255), 1); 
+  cv::line(imgc, cv::Point2f(uv_min.x(), uv_min.y()), cv::Point2f(uv_max.x(), uv_max.y()), cv::Scalar(255, 0, 0), 1); 
+  cv::imshow("ref", imgr); 
+  cv::imshow("cur", imgc); 
+  cv::waitKey(0);
+#endif
   }
 
 }
